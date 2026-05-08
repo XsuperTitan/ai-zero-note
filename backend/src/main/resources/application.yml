@@ -1,0 +1,33 @@
+server:
+  port: 8080
+
+spring:
+  config:
+    import: optional:file:.env.local[.properties],optional:file:./backend/.env.local[.properties]
+  servlet:
+    multipart:
+      max-file-size: 25MB
+      max-request-size: 25MB
+
+asr:
+  default-provider: ${ASR_DEFAULT_PROVIDER:auto}
+  whisper:
+    base-url: ${ASR_WHISPER_BASE_URL:${OPENAI_BASE_URL:https://api.openai.com/v1}}
+    api-key: ${ASR_WHISPER_API_KEY:${OPENAI_API_KEY:}}
+    model: ${ASR_WHISPER_MODEL:${OPENAI_TRANSCRIPTION_MODEL:whisper-1}}
+    transcription-path: ${ASR_WHISPER_TRANSCRIPTION_PATH:/audio/transcriptions}
+  challenger:
+    base-url: ${ASR_CHALLENGER_BASE_URL:${STEPFUN_BASE_URL:https://api.stepfun.com/v1}}
+    api-key: ${ASR_CHALLENGER_API_KEY:${STEPFUN_API_KEY:}}
+    model: ${ASR_CHALLENGER_MODEL:${STEPFUN_ASR_MODEL:step-asr}}
+    transcription-path: ${ASR_CHALLENGER_TRANSCRIPTION_PATH:${STEPFUN_TRANSCRIPTION_PATH:/audio/transcriptions}}
+
+summary:
+  base-url: ${SUMMARY_BASE_URL:${DEEPSEEK_BASE_URL:${OPENAI_BASE_URL:https://api.deepseek.com}}}
+  api-key: ${SUMMARY_API_KEY:${DEEPSEEK_API_KEY:${OPENAI_API_KEY:}}}
+  model: ${SUMMARY_MODEL:${DEEPSEEK_MODEL:${OPENAI_SUMMARY_MODEL:deepseek-chat}}}
+
+app:
+  storage:
+    output-dir: ${APP_OUTPUT_DIR:outputs}
+    max-upload-size-bytes: ${APP_MAX_UPLOAD_SIZE_BYTES:26214400}
