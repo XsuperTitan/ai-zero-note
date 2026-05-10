@@ -1,1 +1,1 @@
-{"root":["./src/main.ts","./src/api/note.ts","./src/app.vue"],"version":"5.9.3"}
+{"root":["./src/main.ts","./src/api/note.ts","./src/api/video.ts","./src/utils/insertatcaret.ts","./src/app.vue","./src/components/videolinksection.vue"],"version":"5.9.3"}

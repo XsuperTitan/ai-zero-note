@@ -33,7 +33,9 @@ public class MarkdownService {
         String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss"));
         String fileName = safeName + "-" + timestamp + ".md";
 
-        String markdown = toMarkdown(sourceFilename, transcription, summary);
+        String markdown = StringUtils.hasText(summary.markdownContent())
+                ? summary.markdownContent()
+                : toMarkdown(sourceFilename, transcription, summary);
         Path filePath = outputDir.resolve(fileName);
         try {
             Files.writeString(filePath, markdown, StandardOpenOption.CREATE_NEW);

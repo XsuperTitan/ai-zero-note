@@ -26,8 +26,24 @@ summary:
   base-url: ${SUMMARY_BASE_URL:${DEEPSEEK_BASE_URL:${OPENAI_BASE_URL:https://api.deepseek.com}}}
   api-key: ${SUMMARY_API_KEY:${DEEPSEEK_API_KEY:${OPENAI_API_KEY:}}}
   model: ${SUMMARY_MODEL:${DEEPSEEK_MODEL:${OPENAI_SUMMARY_MODEL:deepseek-chat}}}
+  user-prompt: ${SUMMARY_USER_PROMPT:以上是某视频的学习录音，要求根据上述转写内容生成详细的英文学习笔记。目标是让我用更通俗的方式理解视频内容。请覆盖：1) 核心概念解释（简单易懂）；2) 关键术语中英对照与释义；3) 重要知识点分层总结；4) 示例句或可复用表达；5) 容易混淆点与纠错建议；6) 最后给出复习清单和可执行练习建议。}
 
 app:
   storage:
     output-dir: ${APP_OUTPUT_DIR:outputs}
     max-upload-size-bytes: ${APP_MAX_UPLOAD_SIZE_BYTES:26214400}
+
+video:
+  yt-dlp-path: ${VIDEO_YT_DLP_PATH:yt-dlp}
+  ffmpeg-path: ${VIDEO_FFMPEG_PATH:ffmpeg}
+  frames-subdir: ${VIDEO_FRAMES_SUBDIR:video-frames}
+  default-max-count: ${VIDEO_DEFAULT_MAX_COUNT:12}
+  default-scene-threshold: ${VIDEO_DEFAULT_SCENE_THRESHOLD:0.4}
+  default-interval-sec: ${VIDEO_DEFAULT_INTERVAL_SEC:10}
+  process-timeout-seconds: ${VIDEO_PROCESS_TIMEOUT_SECONDS:300}
+  max-frame-count: ${VIDEO_MAX_FRAME_COUNT:24}
+  min-scene-threshold: ${VIDEO_MIN_SCENE_THRESHOLD:0.1}
+  max-scene-threshold: ${VIDEO_MAX_SCENE_THRESHOLD:0.9}
+  cleanup-retention-days: ${VIDEO_CLEANUP_RETENTION_DAYS:7}
+  yt-dlp-cookies-from-browser: ${VIDEO_YT_DLP_COOKIES_FROM_BROWSER:}
+  yt-dlp-cookie-file: ${VIDEO_YT_DLP_COOKIE_FILE:}

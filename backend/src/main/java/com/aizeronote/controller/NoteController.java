@@ -4,6 +4,7 @@ import com.aizeronote.model.NoteResult;
 import com.aizeronote.model.TranscriptionComparisonResult;
 import com.aizeronote.model.AsrStatus;
 import com.aizeronote.service.MarkdownService;
+import com.aizeronote.service.MixedNotePipelineService;
 import com.aizeronote.service.NotePipelineService;
 import com.aizeronote.service.TranscriptionComparisonService;
 import com.aizeronote.service.TranscriptionService;
@@ -29,17 +30,20 @@ import java.util.Objects;
 public class NoteController {
 
     private final NotePipelineService notePipelineService;
+    private final MixedNotePipelineService mixedNotePipelineService;
     private final MarkdownService markdownService;
     private final TranscriptionComparisonService transcriptionComparisonService;
     private final TranscriptionService transcriptionService;
 
     public NoteController(
             NotePipelineService notePipelineService,
+            MixedNotePipelineService mixedNotePipelineService,
             MarkdownService markdownService,
             TranscriptionComparisonService transcriptionComparisonService,
             TranscriptionService transcriptionService
     ) {
         this.notePipelineService = notePipelineService;
+        this.mixedNotePipelineService = mixedNotePipelineService;
         this.markdownService = markdownService;
         this.transcriptionComparisonService = transcriptionComparisonService;
         this.transcriptionService = transcriptionService;
@@ -48,6 +52,15 @@ public class NoteController {
     @PostMapping(path = "/process", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<NoteResult> process(@RequestParam("file") MultipartFile file) {
         return ResponseEntity.ok(notePipelineService.process(file));
+    }
+
+    @PostMapping(path = "/process-mixed", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<NoteResult> processMixed(
+            @RequestParam(value = "file", required = false) MultipartFile file,
+            @RequestParam(value = "textFile", required = false) MultipartFile textFile,
+            @RequestParam(value = "textContent", required = false) String textContent
+    ) {
+        return ResponseEntity.ok(mixedNotePipelineService.processMixed(file, textFile, textContent));
     }
 
     @GetMapping("/asr-status")

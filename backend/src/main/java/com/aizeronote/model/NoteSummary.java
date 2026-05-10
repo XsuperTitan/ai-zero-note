@@ -7,6 +7,7 @@ public record NoteSummary(
         String abstractText,
         List<String> keyPoints,
         List<String> codeSnippets,
-        List<String> todos
+        List<String> todos,
+        String markdownContent
 ) {
 }

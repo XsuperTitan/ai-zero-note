@@ -6,6 +6,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 public record SummaryProperties(
         String baseUrl,
         String apiKey,
-        String model
+        String model,
+        String userPrompt
 ) {
 }

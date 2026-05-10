@@ -1,41 +1,79 @@
 <script setup lang="ts">
 import { ref } from "vue";
-import { processAudio, type NoteResult } from "./api/note";
+import { processMixedInput, type NoteResult } from "./api/note";
+import VideoLinkSection from "./components/VideoLinkSection.vue";
+import { insertAtCaret } from "./utils/insertAtCaret";
 
-const selectedFile = ref<File | null>(null);
+const selectedAudioFile = ref<File | null>(null);
+const selectedTextFile = ref<File | null>(null);
+const textContent = ref("");
 const loading = ref(false);
 const errorMessage = ref("");
 const result = ref<NoteResult | null>(null);
+const textAreaRef = ref<HTMLTextAreaElement | null>(null);
 
-function onSelectFile(event: Event) {
+function onSelectAudioFile(event: Event) {
   const target = event.target as HTMLInputElement;
   const file = target.files?.[0] ?? null;
   errorMessage.value = "";
   result.value = null;
 
   if (!file) {
-    selectedFile.value = null;
+    selectedAudioFile.value = null;
     return;
   }
 
   if (!file.name.toLowerCase().endsWith(".mp3")) {
     errorMessage.value = "Only MP3 files are supported in this MVP.";
-    selectedFile.value = null;
+    selectedAudioFile.value = null;
     return;
   }
 
   const maxSize = 25 * 1024 * 1024;
   if (file.size > maxSize) {
     errorMessage.value = "File exceeds 25MB size limit.";
-    selectedFile.value = null;
+    selectedAudioFile.value = null;
     return;
   }
 
-  selectedFile.value = file;
+  selectedAudioFile.value = file;
+}
+
+function onSelectTextFile(event: Event) {
+  const target = event.target as HTMLInputElement;
+  const file = target.files?.[0] ?? null;
+  errorMessage.value = "";
+  result.value = null;
+
+  if (!file) {
+    selectedTextFile.value = null;
+    return;
+  }
+
+  const lower = file.name.toLowerCase();
+  if (!lower.endsWith(".txt") && !lower.endsWith(".md")) {
+    errorMessage.value = "Text file must be .txt or .md.";
+    selectedTextFile.value = null;
+    return;
+  }
+
+  const maxSize = 25 * 1024 * 1024;
+  if (file.size > maxSize) {
+    errorMessage.value = "Text file exceeds 25MB size limit.";
+    selectedTextFile.value = null;
+    return;
+  }
+
+  selectedTextFile.value = file;
 }
 
 async function onSubmit() {
-  if (!selectedFile.value || loading.value) {
+  const hasTextContent = textContent.value.trim().length > 0;
+  if (loading.value) {
+    return;
+  }
+  if (!selectedAudioFile.value && !selectedTextFile.value && !hasTextContent) {
+    errorMessage.value = "Please provide audio file, text file, or text content.";
     return;
   }
 
@@ -44,23 +82,72 @@ async function onSubmit() {
   result.value = null;
 
   try {
-    result.value = await processAudio(selectedFile.value);
+    result.value = await processMixedInput({
+      audioFile: selectedAudioFile.value,
+      textFile: selectedTextFile.value,
+      textContent: textContent.value
+    });
   } catch (error) {
     errorMessage.value = error instanceof Error ? error.message : "Processing failed";
   } finally {
     loading.value = false;
   }
 }
+
+function insertIntoTextContent(rawText: string) {
+  const normalized = rawText.trim();
+  if (!normalized) {
+    return;
+  }
+  const textArea = textAreaRef.value;
+  const insertion = textContent.value.trim().length > 0 ? `\n\n${normalized}` : normalized;
+  if (!textArea) {
+    textContent.value = `${textContent.value}${insertion}`;
+    return;
+  }
+  const { nextValue, nextCaretPosition } = insertAtCaret(textArea, textContent.value, insertion);
+  textContent.value = nextValue;
+  requestAnimationFrame(() => {
+    textArea.focus();
+    textArea.setSelectionRange(nextCaretPosition, nextCaretPosition);
+  });
+}
+
+function onInsertVideoMarkdown(markdown: string) {
+  insertIntoTextContent(markdown);
+}
+
+function onInsertVideoTextContent(text: string) {
+  insertIntoTextContent(text);
+}
 </script>
 
 <template>
   <main class="container">
     <h1>AI Zero Notes</h1>
-    <p>Upload an MP3 file and generate structured markdown notes.</p>
+    <p>Upload MP3 and/or text content to generate final markdown notes.</p>
 
     <section class="card">
-      <input type="file" accept=".mp3,audio/mpeg" @change="onSelectFile" />
-      <button :disabled="!selectedFile || loading" @click="onSubmit">
+      <label class="field-label">Audio (optional, .mp3)</label>
+      <input type="file" accept=".mp3,audio/mpeg" @change="onSelectAudioFile" />
+
+      <label class="field-label">Text file (optional, .txt/.md)</label>
+      <input type="file" accept=".txt,.md,text/plain,text/markdown" @change="onSelectTextFile" />
+
+      <label class="field-label">Text content (optional)</label>
+      <textarea
+        ref="textAreaRef"
+        v-model="textContent"
+        rows="6"
+        placeholder="Paste transcript, outline, or learning notes here..."
+      />
+
+      <VideoLinkSection
+        @insert-markdown="onInsertVideoMarkdown"
+        @insert-text-content="onInsertVideoTextContent"
+      />
+
+      <button :disabled="loading" @click="onSubmit">
         {{ loading ? "Processing..." : "Generate Notes" }}
       </button>
       <p v-if="errorMessage" class="error">{{ errorMessage }}</p>
@@ -93,8 +180,22 @@ async function onSubmit() {
 }
 
 button {
-  margin-left: 0.8rem;
+  margin-top: 0.8rem;
   padding: 0.5rem 0.8rem;
+}
+
+.field-label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 0.3rem;
+  margin-top: 0.8rem;
+}
+
+textarea {
+  box-sizing: border-box;
+  font-family: inherit;
+  padding: 0.6rem;
+  width: 100%;
 }
 
 .error {

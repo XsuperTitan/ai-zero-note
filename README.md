@@ -2,9 +2,10 @@
 
 MVP pipeline:
 
-1. Upload MP3 file from Vue3 frontend
-2. Backend sends audio to Whisper API for transcription
-3. Backend summarizes transcription with OpenAI Chat API
+1. Upload MP3 file and/or text content from Vue3 frontend
+2. Backend transcribes audio (when provided)
+3. Backend merges audio transcription with uploaded text content
+4. Backend summarizes merged content with chat model
 4. Backend exports a markdown file and returns a download URL
 
 ## Tech Stack
@@ -36,7 +37,7 @@ Optional environment variables:
 - `ASR_WHISPER_BASE_URL`, `ASR_WHISPER_API_KEY`, `ASR_WHISPER_MODEL`
 - `ASR_CHALLENGER_BASE_URL`, `ASR_CHALLENGER_API_KEY`, `ASR_CHALLENGER_MODEL`
 - `STEPFUN_BASE_URL`, `STEPFUN_API_KEY`, `STEPFUN_ASR_MODEL` (mapped to challenger ASR)
-- `SUMMARY_BASE_URL`, `SUMMARY_API_KEY`, `SUMMARY_MODEL`
+- `SUMMARY_BASE_URL`, `SUMMARY_API_KEY`, `SUMMARY_MODEL`, `SUMMARY_USER_PROMPT`
 - `DEEPSEEK_BASE_URL`, `DEEPSEEK_API_KEY`, `DEEPSEEK_MODEL` (fallbacks for summary)
 - `APP_OUTPUT_DIR` (default: `outputs`)
 - `APP_MAX_UPLOAD_SIZE_BYTES` (default: `26214400`)
