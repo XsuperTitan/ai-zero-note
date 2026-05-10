@@ -6,10 +6,13 @@ import com.aizeronote.model.VideoFrameItem;
 import com.aizeronote.model.VideoFrameResult;
 import com.aizeronote.model.VideoMetaResult;
 import com.aizeronote.model.VideoTextResult;
+import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.io.BufferedReader;
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -24,6 +27,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
@@ -54,6 +58,7 @@ public class VideoLinkParseService {
     private static final int DEFAULT_CLEANUP_RETENTION_DAYS = 7;
     private static final int COMMAND_OUTPUT_LIMIT = 24_000;
     private static final int DEFAULT_SUBTITLE_MAX_CHARS = 12_000;
+    private static final int DEFAULT_TRANSCRIPTION_MAX_CHARS = 16_000;
 
     private static final Pattern PTS_FILE_PATTERN = Pattern.compile(".*_(\\d+)\\.jpg$");
     private static final Pattern TASK_ID_PATTERN = Pattern.compile("^[a-f0-9]{8}$");
@@ -61,9 +66,15 @@ public class VideoLinkParseService {
 
     private final VideoCaptureProperties properties;
     private final Path frameBaseDir;
+    private final TranscriptionService transcriptionService;
 
-    public VideoLinkParseService(AppStorageProperties appStorageProperties, VideoCaptureProperties properties) {
+    public VideoLinkParseService(
+            AppStorageProperties appStorageProperties,
+            VideoCaptureProperties properties,
+            TranscriptionService transcriptionService
+    ) {
         this.properties = properties;
+        this.transcriptionService = transcriptionService;
         Path outputDir = Path.of(appStorageProperties.outputDir()).toAbsolutePath();
         String framesSubdir = firstText(properties.framesSubdir(), DEFAULT_FRAMES_SUBDIR);
         this.frameBaseDir = outputDir.resolve(framesSubdir).normalize();
@@ -151,7 +162,15 @@ public class VideoLinkParseService {
         String normalizedUrl = validateUrl(url);
         VideoMetaResult meta = getVideoMeta(normalizedUrl);
         String subtitleText = extractSubtitleText(normalizedUrl);
-        String textContent = buildVideoTextContent(meta, subtitleText);
+        String textSource = "字幕文本";
+        String usableText = subtitleText;
+        if (!StringUtils.hasText(usableText)) {
+            usableText = extractAudioTranscriptionText(normalizedUrl);
+            if (StringUtils.hasText(usableText)) {
+                textSource = "音轨转写文本";
+            }
+        }
+        String textContent = buildVideoTextContent(meta, usableText, textSource);
         return new VideoTextResult(meta, subtitleText, textContent);
     }
 
@@ -387,7 +406,55 @@ public class VideoLinkParseService {
         return String.join("\n", contents);
     }
 
-    private String buildVideoTextContent(VideoMetaResult meta, String subtitleText) {
+    private String extractAudioTranscriptionText(String url) {
+        Path audioDir = frameBaseDir.resolve("audio-" + UUID.randomUUID().toString().replace("-", "").substring(0, 8));
+        try {
+            Files.createDirectories(audioDir);
+            executeCommand(ytDlpCommand(
+                    "--no-playlist",
+                    "-x",
+                    "--audio-format", "mp3",
+                    "--audio-quality", "0",
+                    "-o", audioDir.resolve("audio.%(ext)s").toString(),
+                    url
+            ), processTimeoutSeconds(), "视频音轨提取失败");
+
+            Path audioFile;
+            try (Stream<Path> files = Files.list(audioDir)) {
+                audioFile = files
+                        .filter(Files::isRegularFile)
+                        .filter(path -> {
+                            String name = path.getFileName().toString().toLowerCase(Locale.ROOT);
+                            return name.endsWith(".mp3")
+                                    || name.endsWith(".m4a")
+                                    || name.endsWith(".webm")
+                                    || name.endsWith(".wav");
+                        })
+                        .findFirst()
+                        .orElse(null);
+            }
+            if (audioFile == null) {
+                return "";
+            }
+            byte[] bytes = Files.readAllBytes(audioFile);
+            if (bytes.length == 0) {
+                return "";
+            }
+            Path audioFilename = audioFile.getFileName();
+            if (audioFilename == null) {
+                return "";
+            }
+            MultipartFile multipartFile = new InMemoryMultipartFile(audioFilename.toString(), bytes);
+            String transcription = transcriptionService.transcribeWithDefaultProvider(multipartFile);
+            return trimToLimit(transcription, DEFAULT_TRANSCRIPTION_MAX_CHARS);
+        } catch (Exception ignored) {
+            return "";
+        } finally {
+            deleteDirectoryQuietly(audioDir);
+        }
+    }
+
+    private String buildVideoTextContent(VideoMetaResult meta, String mainText, String textSourceLabel) {
         StringBuilder builder = new StringBuilder();
         builder.append("以下是视频学习素材，请基于这些内容生成结构化学习笔记。\n\n")
                 .append("【视频信息】\n")
@@ -397,13 +464,13 @@ public class VideoLinkParseService {
         if (StringUtils.hasText(meta.uploader())) {
             builder.append("作者：").append(meta.uploader()).append("\n");
         }
-        if (StringUtils.hasText(subtitleText)) {
-            builder.append("\n【字幕文本】\n")
-                    .append(subtitleText)
+        if (StringUtils.hasText(mainText)) {
+            builder.append("\n【").append(textSourceLabel).append("】\n")
+                    .append(mainText)
                     .append("\n");
         } else {
-            builder.append("\n【字幕文本】\n")
-                    .append("未获取到可用字幕，请结合视频链接与标题理解内容。\n");
+            builder.append("\n【视频文本】\n")
+                    .append("未获取到可用字幕或音轨转写结果，请结合视频链接与标题理解内容。\n");
         }
         return builder.toString().trim();
     }
@@ -749,5 +816,58 @@ public class VideoLinkParseService {
     }
 
     private record CommandResult(String stdout, String stderr, int exitCode) {
+    }
+
+    private static final class InMemoryMultipartFile implements MultipartFile {
+        private final String originalFilename;
+        private final byte[] content;
+
+        private InMemoryMultipartFile(String originalFilename, byte[] content) {
+            this.originalFilename = originalFilename;
+            this.content = content;
+        }
+
+        @Override
+        @NonNull
+        public String getName() {
+            return "file";
+        }
+
+        @Override
+        public String getOriginalFilename() {
+            return originalFilename;
+        }
+
+        @Override
+        public String getContentType() {
+            return "audio/mpeg";
+        }
+
+        @Override
+        public boolean isEmpty() {
+            return content.length == 0;
+        }
+
+        @Override
+        public long getSize() {
+            return content.length;
+        }
+
+        @Override
+        @NonNull
+        public byte[] getBytes() {
+            return Objects.requireNonNull(content);
+        }
+
+        @Override
+        @NonNull
+        public InputStream getInputStream() {
+            return new ByteArrayInputStream(Objects.requireNonNull(content));
+        }
+
+        @Override
+        public void transferTo(@NonNull File dest) throws IOException, IllegalStateException {
+            Files.write(dest.toPath(), content);
+        }
     }
 }
