@@ -28,6 +28,11 @@ export async function fetchVideoFrames(query) {
     const params = new URLSearchParams({ url: query.url });
     return request(`${API_BASE}/frames?${params.toString()}`, "关键截图生成失败");
 }
+export async function fetchVideoVisionText(url, taskId, fileNames, targetLanguage) {
+    const params = new URLSearchParams({ url, taskId, targetLanguage });
+    fileNames.forEach((fileName) => params.append("fileName", fileName));
+    return request(`${API_BASE}/vision-text?${params.toString()}`, "图生文提取失败");
+}
 export function resolveVideoAssetUrl(path) {
     if (path.startsWith("http://") || path.startsWith("https://")) {
         return path;

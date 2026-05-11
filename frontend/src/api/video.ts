@@ -27,6 +27,11 @@ export interface VideoTextResult {
   textContent: string;
 }
 
+export interface VideoVisionResult {
+  meta: VideoMetaResult;
+  textContent: string;
+}
+
 interface FrameQuery {
   url: string;
 }
@@ -63,6 +68,17 @@ export async function fetchVideoText(url: string): Promise<VideoTextResult> {
 export async function fetchVideoFrames(query: FrameQuery): Promise<VideoFrameResult> {
   const params = new URLSearchParams({ url: query.url });
   return request<VideoFrameResult>(`${API_BASE}/frames?${params.toString()}`, "关键截图生成失败");
+}
+
+export async function fetchVideoVisionText(
+  url: string,
+  taskId: string,
+  fileNames: string[],
+  targetLanguage: "auto" | "zh" | "en"
+): Promise<VideoVisionResult> {
+  const params = new URLSearchParams({ url, taskId, targetLanguage });
+  fileNames.forEach((fileName) => params.append("fileName", fileName));
+  return request<VideoVisionResult>(`${API_BASE}/vision-text?${params.toString()}`, "图生文提取失败");
 }
 
 export function resolveVideoAssetUrl(path: string): string {

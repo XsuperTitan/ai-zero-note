@@ -23,6 +23,9 @@ AI Zero Notes supports two input paths:
   - Video-to-text endpoint (`/api/video/text`) with dual-channel fallback:
     - First attempt: subtitle extraction
     - Fallback: audio extraction + existing ASR transcription
+  - Vision text extraction is triggered after screenshot generation:
+    - Select screenshots in UI
+    - Click "图生文提取并注入Text content"
 - Robust external-tool handling:
   - Auto-detect executable paths for `yt-dlp` / `ffmpeg`
   - Optional YouTube cookies support (`cookies-from-browser` or cookie file)
@@ -81,6 +84,10 @@ Common optional environment variables:
 - Summary:
   - `SUMMARY_BASE_URL`, `SUMMARY_API_KEY`, `SUMMARY_MODEL`, `SUMMARY_USER_PROMPT`
   - `DEEPSEEK_BASE_URL`, `DEEPSEEK_API_KEY`, `DEEPSEEK_MODEL`
+- Vision:
+  - `VISION_ENABLED` (default: `true`)
+  - `VISION_BASE_URL`, `VISION_API_KEY`, `VISION_MODEL`, `VISION_PROMPT`
+  - `VISION_MAX_FRAMES` (default: `30`)
 - Storage:
   - `APP_OUTPUT_DIR` (default: `outputs`)
   - `APP_MAX_UPLOAD_SIZE_BYTES` (default: `26214400`)
@@ -88,8 +95,8 @@ Common optional environment variables:
   - `VIDEO_YT_DLP_PATH` (default: `yt-dlp`)
   - `VIDEO_FFMPEG_PATH` (default: `ffmpeg`)
   - `VIDEO_FRAMES_SUBDIR` (default: `video-frames`)
-  - `VIDEO_DEFAULT_MAX_COUNT` (default: `12`)
-  - `VIDEO_MAX_FRAME_COUNT` (default: `24`)
+  - `VIDEO_DEFAULT_MAX_COUNT` (default: `40`)
+  - `VIDEO_MAX_FRAME_COUNT` (default: `60`)
   - `VIDEO_DEFAULT_SCENE_THRESHOLD` (default: `0.4`)
   - `VIDEO_DEFAULT_INTERVAL_SEC` (default: `10`)
   - `VIDEO_PROCESS_TIMEOUT_SECONDS` (default: `300`)
@@ -118,6 +125,7 @@ Video API:
 - `GET /api/video/meta?url=...`
 - `GET /api/video/frames?url=...`
 - `GET /api/video/text?url=...`
+- `GET /api/video/vision-text?url=...&taskId=...&fileName=...`
 - `GET /api/video/download/{taskId}/{fileName}`
 
 ## Compare ASR Accuracy

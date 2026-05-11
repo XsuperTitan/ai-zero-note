@@ -6,6 +6,7 @@ import com.aizeronote.model.VideoFrameItem;
 import com.aizeronote.model.VideoFrameResult;
 import com.aizeronote.model.VideoMetaResult;
 import com.aizeronote.model.VideoTextResult;
+import com.aizeronote.model.VideoVisionResult;
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
@@ -67,14 +68,17 @@ public class VideoLinkParseService {
     private final VideoCaptureProperties properties;
     private final Path frameBaseDir;
     private final TranscriptionService transcriptionService;
+    private final VisionSummaryService visionSummaryService;
 
     public VideoLinkParseService(
             AppStorageProperties appStorageProperties,
             VideoCaptureProperties properties,
-            TranscriptionService transcriptionService
+            TranscriptionService transcriptionService,
+            VisionSummaryService visionSummaryService
     ) {
         this.properties = properties;
         this.transcriptionService = transcriptionService;
+        this.visionSummaryService = visionSummaryService;
         Path outputDir = Path.of(appStorageProperties.outputDir()).toAbsolutePath();
         String framesSubdir = firstText(properties.framesSubdir(), DEFAULT_FRAMES_SUBDIR);
         this.frameBaseDir = outputDir.resolve(framesSubdir).normalize();
@@ -174,6 +178,35 @@ public class VideoLinkParseService {
         return new VideoTextResult(meta, subtitleText, textContent);
     }
 
+    public VideoVisionResult buildVisionText(
+            String url,
+            String taskId,
+            List<String> selectedFrameNames,
+            String targetLanguage
+    ) {
+        String normalizedUrl = validateUrl(url);
+        VideoMetaResult meta = getVideoMeta(normalizedUrl);
+        if (!StringUtils.hasText(taskId)) {
+            throw new IllegalArgumentException("截图任务 ID 不能为空。");
+        }
+        if (selectedFrameNames == null || selectedFrameNames.isEmpty()) {
+            throw new IllegalArgumentException("请至少选择一张截图。");
+        }
+        List<Path> framePaths = selectedFrameNames.stream()
+                .filter(StringUtils::hasText)
+                .distinct()
+                .map(fileName -> resolveFramePath(taskId, fileName))
+                .toList();
+        if (framePaths.isEmpty()) {
+            throw new IllegalArgumentException("未找到可用截图，请先生成关键截图。");
+        }
+        String visionText = visionSummaryService.summarizeFrames(meta, framePaths, targetLanguage);
+        if (!StringUtils.hasText(visionText)) {
+            throw new IllegalStateException("图生文提取失败，请检查 VISION 配置或稍后重试。");
+        }
+        return new VideoVisionResult(meta, visionText.trim());
+    }
+
     public Path resolveFramePath(String taskId, String fileName) {
         if (!StringUtils.hasText(taskId) || !TASK_ID_PATTERN.matcher(taskId).matches()) {
             throw new IllegalArgumentException("Invalid task id.");
@@ -218,11 +251,18 @@ public class VideoLinkParseService {
         List<Path> sceneFrames = allFrames.stream()
                 .filter(path -> path.getFileName().toString().startsWith("scene_"))
                 .toList();
+        int cappedTarget = targetCount;
+        if (!intervalFrames.isEmpty()) {
+            cappedTarget = Math.min(targetCount, intervalFrames.size());
+        }
+        if (cappedTarget <= 0) {
+            return List.of();
+        }
 
         if (!sceneFrames.isEmpty() && !intervalFrames.isEmpty()) {
-            int sceneBudget = Math.max(2, targetCount / 3);
+            int sceneBudget = Math.max(2, cappedTarget / 3);
             List<Path> sceneSelected = sampleEvenly(sceneFrames, Math.min(sceneBudget, sceneFrames.size()));
-            int remainingBudget = Math.max(0, targetCount - sceneSelected.size());
+            int remainingBudget = Math.max(0, cappedTarget - sceneSelected.size());
             List<Path> intervalSelected = sampleEvenly(intervalFrames, Math.min(remainingBudget, intervalFrames.size()));
 
             List<Path> merged = new ArrayList<>();
@@ -233,11 +273,11 @@ public class VideoLinkParseService {
         }
 
         if (!intervalFrames.isEmpty()) {
-            return sampleEvenly(intervalFrames, targetCount);
+            return sampleEvenly(intervalFrames, cappedTarget);
         }
 
         if (!sceneFrames.isEmpty()) {
-            return sampleEvenly(sceneFrames, targetCount);
+            return sampleEvenly(sceneFrames, cappedTarget);
         }
         return allFrames;
     }
@@ -259,19 +299,19 @@ public class VideoLinkParseService {
     }
 
     private int resolveTargetFrameCount(long durationSeconds) {
-        int hardMax = positiveOrDefault(properties.maxFrameCount(), 24);
-        int fallbackDefault = positiveOrDefault(properties.defaultMaxCount(), 12);
+        int hardMax = positiveOrDefault(properties.maxFrameCount(), 60);
+        int fallbackDefault = positiveOrDefault(properties.defaultMaxCount(), 40);
         if (durationSeconds <= 0) {
-            int fallbackTarget = clamp(fallbackDefault, 12, 16);
+            int fallbackTarget = clamp(fallbackDefault, 30, 40);
             return Math.min(hardMax, fallbackTarget);
         }
         int target;
         if (durationSeconds > 20 * 60) {
-            int byDuration = (int) Math.ceil((double) durationSeconds / 75.0);
-            target = clamp(byDuration, 16, 24);
+            int byDuration = (int) Math.ceil((double) durationSeconds / 30.0);
+            target = clamp(byDuration, 40, 60);
         } else {
-            int byDuration = (int) Math.ceil((double) durationSeconds / 90.0);
-            target = clamp(byDuration, 12, 16);
+            int byDuration = (int) Math.ceil((double) durationSeconds / 45.0);
+            target = clamp(byDuration, 30, 40);
         }
         return Math.min(hardMax, target);
     }
@@ -454,7 +494,11 @@ public class VideoLinkParseService {
         }
     }
 
-    private String buildVideoTextContent(VideoMetaResult meta, String mainText, String textSourceLabel) {
+    private String buildVideoTextContent(
+            VideoMetaResult meta,
+            String mainText,
+            String textSourceLabel
+    ) {
         StringBuilder builder = new StringBuilder();
         builder.append("以下是视频学习素材，请基于这些内容生成结构化学习笔记。\n\n")
                 .append("【视频信息】\n")

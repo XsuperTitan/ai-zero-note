@@ -28,6 +28,14 @@ summary:
   model: ${SUMMARY_MODEL:${DEEPSEEK_MODEL:${OPENAI_SUMMARY_MODEL:deepseek-chat}}}
   user-prompt: ${SUMMARY_USER_PROMPT:以上是某视频的学习录音，要求根据上述转写内容生成详细的英文学习笔记。目标是让我用更通俗的方式理解视频内容。请覆盖：1) 核心概念解释（简单易懂）；2) 关键术语中英对照与释义；3) 重要知识点分层总结；4) 示例句或可复用表达；5) 容易混淆点与纠错建议；6) 最后给出复习清单和可执行练习建议。}
 
+vision:
+  enabled: ${VISION_ENABLED:true}
+  base-url: ${VISION_BASE_URL:${OPENAI_BASE_URL:https://api.openai.com/v1}}
+  api-key: ${VISION_API_KEY:${OPENAI_API_KEY:}}
+  model: ${VISION_MODEL:gpt-4.1-mini}
+  prompt: ${VISION_PROMPT:你是视频截图学习内容分析助手。请在“信息完整性”和“证据约束”之间保持平衡：可以总结归纳和适度抽象，但不得编造截图中未出现的具体人名编号金额链接或步骤细节。输出语言优先遵循目标输出语言参数；若参数为空或为auto，再根据截图主导语言输出（中文主导输出中文，英文主导输出英文）。请按以下结构输出：1) 主题（1-2句）2) 关键要点（4-8条）3) 可确认示例（仅列截图可见证据，必要时引用可见关键词）4) 合理推断（可选，需标注“推断”）5) 不确定信息（可选：仅当存在关键缺失时输出；若无则写“无”）。每条要点末尾标注证据等级：高/中/低。}
+  max-frames: ${VISION_MAX_FRAMES:30}
+
 app:
   storage:
     output-dir: ${APP_OUTPUT_DIR:outputs}
@@ -37,11 +45,11 @@ video:
   yt-dlp-path: ${VIDEO_YT_DLP_PATH:yt-dlp}
   ffmpeg-path: ${VIDEO_FFMPEG_PATH:ffmpeg}
   frames-subdir: ${VIDEO_FRAMES_SUBDIR:video-frames}
-  default-max-count: ${VIDEO_DEFAULT_MAX_COUNT:12}
+  default-max-count: ${VIDEO_DEFAULT_MAX_COUNT:40}
   default-scene-threshold: ${VIDEO_DEFAULT_SCENE_THRESHOLD:0.4}
   default-interval-sec: ${VIDEO_DEFAULT_INTERVAL_SEC:10}
   process-timeout-seconds: ${VIDEO_PROCESS_TIMEOUT_SECONDS:300}
-  max-frame-count: ${VIDEO_MAX_FRAME_COUNT:24}
+  max-frame-count: ${VIDEO_MAX_FRAME_COUNT:60}
   min-scene-threshold: ${VIDEO_MIN_SCENE_THRESHOLD:0.1}
   max-scene-threshold: ${VIDEO_MAX_SCENE_THRESHOLD:0.9}
   cleanup-retention-days: ${VIDEO_CLEANUP_RETENTION_DAYS:7}

@@ -3,6 +3,7 @@ package com.aizeronote.controller;
 import com.aizeronote.model.VideoFrameResult;
 import com.aizeronote.model.VideoMetaResult;
 import com.aizeronote.model.VideoTextResult;
+import com.aizeronote.model.VideoVisionResult;
 import com.aizeronote.service.VideoLinkParseService;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.UrlResource;
@@ -17,6 +18,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.net.MalformedURLException;
 import java.nio.file.Path;
+import java.util.List;
 import java.util.Objects;
 
 @RestController
@@ -42,6 +44,16 @@ public class VideoController {
     @GetMapping("/text")
     public ResponseEntity<VideoTextResult> buildVideoText(@RequestParam("url") String url) {
         return ResponseEntity.ok(videoLinkParseService.buildVideoText(url));
+    }
+
+    @GetMapping("/vision-text")
+    public ResponseEntity<VideoVisionResult> buildVisionText(
+            @RequestParam("url") String url,
+            @RequestParam("taskId") String taskId,
+            @RequestParam("fileName") List<String> fileNames,
+            @RequestParam(value = "targetLanguage", required = false) String targetLanguage
+    ) {
+        return ResponseEntity.ok(videoLinkParseService.buildVisionText(url, taskId, fileNames, targetLanguage));
     }
 
     @GetMapping("/download/{taskId}/{fileName}")

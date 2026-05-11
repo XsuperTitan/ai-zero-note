@@ -1,13 +1,17 @@
 import { computed, ref } from "vue";
-import { fetchVideoFrames, fetchVideoText, resolveVideoAssetUrl } from "../api/video";
+import { fetchVideoFrames, fetchVideoText, fetchVideoVisionText, resolveVideoAssetUrl } from "../api/video";
 const emit = defineEmits();
 const videoUrl = ref("");
 const loadingMeta = ref(false);
 const loadingFrames = ref(false);
+const loadingVision = ref(false);
 const errorMessage = ref("");
 const videoMeta = ref(null);
 const frames = ref([]);
 const selectedFrameNames = ref(new Set());
+const currentTaskId = ref("");
+const currentFrameUrl = ref("");
+const visionTargetLanguage = ref("auto");
 const selectedFrames = computed(() => frames.value.filter((frame) => selectedFrameNames.value.has(frame.fileName)));
 function clearError() {
     errorMessage.value = "";
@@ -23,7 +27,7 @@ function validateUrl() {
     return value;
 }
 async function onParseMeta() {
-    if (loadingMeta.value || loadingFrames.value) {
+    if (loadingMeta.value || loadingFrames.value || loadingVision.value) {
         return;
     }
     clearError();
@@ -42,7 +46,7 @@ async function onParseMeta() {
     }
 }
 async function onGenerateFrames() {
-    if (loadingFrames.value || loadingMeta.value) {
+    if (loadingFrames.value || loadingMeta.value || loadingVision.value) {
         return;
     }
     clearError();
@@ -52,6 +56,8 @@ async function onGenerateFrames() {
         const result = await fetchVideoFrames({ url });
         videoMeta.value = result.meta;
         frames.value = result.frames;
+        currentTaskId.value = result.taskId;
+        currentFrameUrl.value = url;
         selectedFrameNames.value = new Set(result.frames.map((frame) => frame.fileName));
     }
     catch (error) {
@@ -59,6 +65,31 @@ async function onGenerateFrames() {
     }
     finally {
         loadingFrames.value = false;
+    }
+}
+async function onGenerateVisionText() {
+    if (loadingFrames.value || loadingMeta.value || loadingVision.value) {
+        return;
+    }
+    if (selectedFrames.value.length === 0) {
+        errorMessage.value = "请至少选择一张截图。";
+        return;
+    }
+    if (!currentTaskId.value) {
+        errorMessage.value = "请先生成关键截图。";
+        return;
+    }
+    clearError();
+    try {
+        loadingVision.value = true;
+        const result = await fetchVideoVisionText(currentFrameUrl.value, currentTaskId.value, selectedFrames.value.map((frame) => frame.fileName), visionTargetLanguage.value);
+        emit("insert-text-content", result.textContent);
+    }
+    catch (error) {
+        errorMessage.value = error instanceof Error ? error.message : "图生文提取失败";
+    }
+    finally {
+        loadingVision.value = false;
     }
 }
 function toggleFrame(fileName) {
@@ -127,13 +158,13 @@ __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.d
 __VLS_asFunctionalElement(__VLS_intrinsicElements.button, __VLS_intrinsicElements.button)({
     ...{ onClick: (__VLS_ctx.onParseMeta) },
     type: "button",
-    disabled: (__VLS_ctx.loadingMeta || __VLS_ctx.loadingFrames),
+    disabled: (__VLS_ctx.loadingMeta || __VLS_ctx.loadingFrames || __VLS_ctx.loadingVision),
 });
 (__VLS_ctx.loadingMeta ? "提取中..." : "解析视频信息并注入Text content");
 __VLS_asFunctionalElement(__VLS_intrinsicElements.button, __VLS_intrinsicElements.button)({
     ...{ onClick: (__VLS_ctx.onGenerateFrames) },
     type: "button",
-    disabled: (__VLS_ctx.loadingMeta || __VLS_ctx.loadingFrames),
+    disabled: (__VLS_ctx.loadingMeta || __VLS_ctx.loadingFrames || __VLS_ctx.loadingVision),
 });
 (__VLS_ctx.loadingFrames ? "生成中..." : "生成关键截图");
 if (__VLS_ctx.videoMeta) {
@@ -163,6 +194,21 @@ if (__VLS_ctx.frames.length > 0) {
     __VLS_asFunctionalElement(__VLS_intrinsicElements.button, __VLS_intrinsicElements.button)({
         ...{ onClick: (__VLS_ctx.clearSelectedFrames) },
         type: "button",
+    });
+    __VLS_asFunctionalElement(__VLS_intrinsicElements.label, __VLS_intrinsicElements.label)({
+        ...{ class: "language-label" },
+    });
+    __VLS_asFunctionalElement(__VLS_intrinsicElements.select, __VLS_intrinsicElements.select)({
+        value: (__VLS_ctx.visionTargetLanguage),
+    });
+    __VLS_asFunctionalElement(__VLS_intrinsicElements.option, __VLS_intrinsicElements.option)({
+        value: "auto",
+    });
+    __VLS_asFunctionalElement(__VLS_intrinsicElements.option, __VLS_intrinsicElements.option)({
+        value: "zh",
+    });
+    __VLS_asFunctionalElement(__VLS_intrinsicElements.option, __VLS_intrinsicElements.option)({
+        value: "en",
     });
     __VLS_asFunctionalElement(__VLS_intrinsicElements.span, __VLS_intrinsicElements.span)({});
     (__VLS_ctx.selectedFrames.length);
@@ -195,12 +241,22 @@ if (__VLS_ctx.frames.length > 0) {
     }
 }
 if (__VLS_ctx.frames.length > 0) {
+    __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({
+        ...{ class: "insert-actions" },
+    });
     __VLS_asFunctionalElement(__VLS_intrinsicElements.button, __VLS_intrinsicElements.button)({
         ...{ onClick: (__VLS_ctx.onInsertMarkdown) },
         type: "button",
         ...{ class: "insert-btn" },
-        disabled: (__VLS_ctx.selectedFrames.length === 0),
+        disabled: (__VLS_ctx.selectedFrames.length === 0 || __VLS_ctx.loadingVision),
     });
+    __VLS_asFunctionalElement(__VLS_intrinsicElements.button, __VLS_intrinsicElements.button)({
+        ...{ onClick: (__VLS_ctx.onGenerateVisionText) },
+        type: "button",
+        ...{ class: "insert-btn" },
+        disabled: (__VLS_ctx.selectedFrames.length === 0 || __VLS_ctx.loadingVision),
+    });
+    (__VLS_ctx.loadingVision ? "图生文提取中..." : "图生文提取并注入Text content");
 }
 if (__VLS_ctx.errorMessage) {
     __VLS_asFunctionalElement(__VLS_intrinsicElements.p, __VLS_intrinsicElements.p)({
@@ -213,8 +269,11 @@ if (__VLS_ctx.errorMessage) {
 /** @type {__VLS_StyleScopedClasses['actions']} */ ;
 /** @type {__VLS_StyleScopedClasses['meta']} */ ;
 /** @type {__VLS_StyleScopedClasses['grid-toolbar']} */ ;
+/** @type {__VLS_StyleScopedClasses['language-label']} */ ;
 /** @type {__VLS_StyleScopedClasses['frame-grid']} */ ;
 /** @type {__VLS_StyleScopedClasses['frame-item']} */ ;
+/** @type {__VLS_StyleScopedClasses['insert-actions']} */ ;
+/** @type {__VLS_StyleScopedClasses['insert-btn']} */ ;
 /** @type {__VLS_StyleScopedClasses['insert-btn']} */ ;
 /** @type {__VLS_StyleScopedClasses['error']} */ ;
 var __VLS_dollars;
@@ -225,13 +284,16 @@ const __VLS_self = (await import('vue')).defineComponent({
             videoUrl: videoUrl,
             loadingMeta: loadingMeta,
             loadingFrames: loadingFrames,
+            loadingVision: loadingVision,
             errorMessage: errorMessage,
             videoMeta: videoMeta,
             frames: frames,
             selectedFrameNames: selectedFrameNames,
+            visionTargetLanguage: visionTargetLanguage,
             selectedFrames: selectedFrames,
             onParseMeta: onParseMeta,
             onGenerateFrames: onGenerateFrames,
+            onGenerateVisionText: onGenerateVisionText,
             toggleFrame: toggleFrame,
             selectAllFrames: selectAllFrames,
             clearSelectedFrames: clearSelectedFrames,

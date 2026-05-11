@@ -9,11 +9,15 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Objects;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @Service
 public class MixedNotePipelineService {
 
     private static final long MB = 1024L * 1024L;
+    private static final Pattern VIDEO_TITLE_LINE_PATTERN = Pattern.compile("^标题\\s*[：:]\\s*(.+)$", Pattern.MULTILINE);
+    private static final Pattern VIDEO_MARKDOWN_TITLE_PATTERN = Pattern.compile("\\*\\*视频标题\\*\\*\\s*:\\s*\\[(.+?)]\\(");
 
     private final AppStorageProperties appStorageProperties;
     private final TranscriptionService transcriptionService;
@@ -51,7 +55,7 @@ public class MixedNotePipelineService {
         String supplementalText = mergeSupplementalText(textFile, textContent);
 
         NoteSummary summary = summaryService.summarizeWithSupplemental(transcription, supplementalText);
-        String sourceName = buildSourceName(audioFile, textFile, hasTextContent);
+        String sourceName = buildSourceName(audioFile, textFile, textContent, summary.title());
         MarkdownService.GeneratedMarkdown generated = markdownService.generate(sourceName, transcription, summary);
 
         String displayedTranscription = StringUtils.hasText(transcription) ? transcription : supplementalText;
@@ -69,9 +73,15 @@ public class MixedNotePipelineService {
         );
     }
 
-    private String buildSourceName(MultipartFile audioFile, MultipartFile textFile, boolean hasTextContent) {
+    private String buildSourceName(
+            MultipartFile audioFile,
+            MultipartFile textFile,
+            String textContent,
+            String summaryTitle
+    ) {
         boolean hasAudio = audioFile != null && !audioFile.isEmpty();
         boolean hasTextFile = textFile != null && !textFile.isEmpty();
+        boolean hasTextContent = StringUtils.hasText(textContent);
         String audioName = "";
         if (hasAudio) {
             audioName = Objects.requireNonNull(audioFile).getOriginalFilename();
@@ -89,7 +99,29 @@ public class MixedNotePipelineService {
         if (hasTextFile) {
             return textName;
         }
+        if (StringUtils.hasText(summaryTitle)) {
+            return summaryTitle.trim();
+        }
+        String extractedTitle = extractVideoTitleFromText(textContent);
+        if (StringUtils.hasText(extractedTitle)) {
+            return extractedTitle;
+        }
         return "text-input";
+    }
+
+    private String extractVideoTitleFromText(String textContent) {
+        if (!StringUtils.hasText(textContent)) {
+            return "";
+        }
+        Matcher lineMatcher = VIDEO_TITLE_LINE_PATTERN.matcher(textContent);
+        if (lineMatcher.find()) {
+            return lineMatcher.group(1).trim();
+        }
+        Matcher markdownMatcher = VIDEO_MARKDOWN_TITLE_PATTERN.matcher(textContent);
+        if (markdownMatcher.find()) {
+            return markdownMatcher.group(1).trim();
+        }
+        return "";
     }
 
     private String mergeSupplementalText(MultipartFile textFile, String textContent) {

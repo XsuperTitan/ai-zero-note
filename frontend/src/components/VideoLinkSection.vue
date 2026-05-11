@@ -3,6 +3,7 @@ import { computed, ref } from "vue";
 import {
   fetchVideoFrames,
   fetchVideoText,
+  fetchVideoVisionText,
   resolveVideoAssetUrl,
   type VideoFrameItem,
   type VideoMetaResult
@@ -16,10 +17,14 @@ const emit = defineEmits<{
 const videoUrl = ref("");
 const loadingMeta = ref(false);
 const loadingFrames = ref(false);
+const loadingVision = ref(false);
 const errorMessage = ref("");
 const videoMeta = ref<VideoMetaResult | null>(null);
 const frames = ref<VideoFrameItem[]>([]);
 const selectedFrameNames = ref<Set<string>>(new Set());
+const currentTaskId = ref("");
+const currentFrameUrl = ref("");
+const visionTargetLanguage = ref<"auto" | "zh" | "en">("auto");
 
 const selectedFrames = computed(() =>
   frames.value.filter((frame) => selectedFrameNames.value.has(frame.fileName))
@@ -41,7 +46,7 @@ function validateUrl(): string {
 }
 
 async function onParseMeta() {
-  if (loadingMeta.value || loadingFrames.value) {
+  if (loadingMeta.value || loadingFrames.value || loadingVision.value) {
     return;
   }
   clearError();
@@ -59,7 +64,7 @@ async function onParseMeta() {
 }
 
 async function onGenerateFrames() {
-  if (loadingFrames.value || loadingMeta.value) {
+  if (loadingFrames.value || loadingMeta.value || loadingVision.value) {
     return;
   }
   clearError();
@@ -69,11 +74,42 @@ async function onGenerateFrames() {
     const result = await fetchVideoFrames({ url });
     videoMeta.value = result.meta;
     frames.value = result.frames;
+    currentTaskId.value = result.taskId;
+    currentFrameUrl.value = url;
     selectedFrameNames.value = new Set(result.frames.map((frame) => frame.fileName));
   } catch (error) {
     errorMessage.value = error instanceof Error ? error.message : "关键截图生成失败";
   } finally {
     loadingFrames.value = false;
+  }
+}
+
+async function onGenerateVisionText() {
+  if (loadingFrames.value || loadingMeta.value || loadingVision.value) {
+    return;
+  }
+  if (selectedFrames.value.length === 0) {
+    errorMessage.value = "请至少选择一张截图。";
+    return;
+  }
+  if (!currentTaskId.value) {
+    errorMessage.value = "请先生成关键截图。";
+    return;
+  }
+  clearError();
+  try {
+    loadingVision.value = true;
+    const result = await fetchVideoVisionText(
+      currentFrameUrl.value,
+      currentTaskId.value,
+      selectedFrames.value.map((frame) => frame.fileName),
+      visionTargetLanguage.value
+    );
+    emit("insert-text-content", result.textContent);
+  } catch (error) {
+    errorMessage.value = error instanceof Error ? error.message : "图生文提取失败";
+  } finally {
+    loadingVision.value = false;
   }
 }
 
@@ -132,10 +168,10 @@ function onInsertMarkdown() {
     />
 
     <div class="actions">
-      <button type="button" :disabled="loadingMeta || loadingFrames" @click="onParseMeta">
+      <button type="button" :disabled="loadingMeta || loadingFrames || loadingVision" @click="onParseMeta">
         {{ loadingMeta ? "提取中..." : "解析视频信息并注入Text content" }}
       </button>
-      <button type="button" :disabled="loadingMeta || loadingFrames" @click="onGenerateFrames">
+      <button type="button" :disabled="loadingMeta || loadingFrames || loadingVision" @click="onGenerateFrames">
         {{ loadingFrames ? "生成中..." : "生成关键截图" }}
       </button>
     </div>
@@ -149,6 +185,14 @@ function onInsertMarkdown() {
     <div v-if="frames.length > 0" class="grid-toolbar">
       <button type="button" @click="selectAllFrames">全选</button>
       <button type="button" @click="clearSelectedFrames">清空</button>
+      <label class="language-label">
+        输出语言
+        <select v-model="visionTargetLanguage">
+          <option value="auto">自动</option>
+          <option value="zh">中文</option>
+          <option value="en">English</option>
+        </select>
+      </label>
       <span>已选 {{ selectedFrames.length }} / {{ frames.length }}</span>
     </div>
 
@@ -168,15 +212,24 @@ function onInsertMarkdown() {
       </label>
     </div>
 
-    <button
-      v-if="frames.length > 0"
-      type="button"
-      class="insert-btn"
-      :disabled="selectedFrames.length === 0"
-      @click="onInsertMarkdown"
-    >
-      插入选中截图 Markdown
-    </button>
+    <div v-if="frames.length > 0" class="insert-actions">
+      <button
+        type="button"
+        class="insert-btn"
+        :disabled="selectedFrames.length === 0 || loadingVision"
+        @click="onInsertMarkdown"
+      >
+        插入选中截图 Markdown
+      </button>
+      <button
+        type="button"
+        class="insert-btn"
+        :disabled="selectedFrames.length === 0 || loadingVision"
+        @click="onGenerateVisionText"
+      >
+        {{ loadingVision ? "图生文提取中..." : "图生文提取并注入Text content" }}
+      </button>
+    </div>
 
     <p v-if="errorMessage" class="error">{{ errorMessage }}</p>
   </section>
@@ -222,6 +275,12 @@ input[type="url"] {
   margin: 0.8rem 0;
 }
 
+.language-label {
+  align-items: center;
+  display: inline-flex;
+  gap: 0.3rem;
+}
+
 .frame-grid {
   display: grid;
   gap: 0.6rem;
@@ -252,6 +311,12 @@ input[type="url"] {
 }
 
 .insert-btn {
+  margin-top: 0;
+}
+
+.insert-actions {
+  display: flex;
+  gap: 0.6rem;
   margin-top: 0.8rem;
 }
 
