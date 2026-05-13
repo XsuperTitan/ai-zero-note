@@ -134,20 +134,26 @@ debugger; /* PartiallyEnd: #3632/scriptSetup.vue */
 const __VLS_ctx = {};
 let __VLS_components;
 let __VLS_directives;
+/** @type {__VLS_StyleScopedClasses['actions']} */ ;
 /** @type {__VLS_StyleScopedClasses['meta']} */ ;
+/** @type {__VLS_StyleScopedClasses['meta']} */ ;
+/** @type {__VLS_StyleScopedClasses['frame-item']} */ ;
 /** @type {__VLS_StyleScopedClasses['frame-item']} */ ;
 /** @type {__VLS_StyleScopedClasses['frame-item']} */ ;
 /** @type {__VLS_StyleScopedClasses['frame-item']} */ ;
 // CSS variable injection 
 // CSS variable injection end 
 __VLS_asFunctionalElement(__VLS_intrinsicElements.section, __VLS_intrinsicElements.section)({
-    ...{ class: "video-card" },
+    ...{ class: "video-panel" },
 });
-__VLS_asFunctionalElement(__VLS_intrinsicElements.h3, __VLS_intrinsicElements.h3)({});
+__VLS_asFunctionalElement(__VLS_intrinsicElements.h3, __VLS_intrinsicElements.h3)({
+    ...{ class: "video-heading cyber-display" },
+});
 __VLS_asFunctionalElement(__VLS_intrinsicElements.label, __VLS_intrinsicElements.label)({
-    ...{ class: "field-label" },
+    ...{ class: "cyber-field-label" },
 });
 __VLS_asFunctionalElement(__VLS_intrinsicElements.input)({
+    ...{ class: "cyber-field" },
     type: "url",
     placeholder: "https://www.bilibili.com/... 或 https://www.youtube.com/...",
 });
@@ -158,12 +164,14 @@ __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.d
 __VLS_asFunctionalElement(__VLS_intrinsicElements.button, __VLS_intrinsicElements.button)({
     ...{ onClick: (__VLS_ctx.onParseMeta) },
     type: "button",
+    ...{ class: "cyber-btn" },
     disabled: (__VLS_ctx.loadingMeta || __VLS_ctx.loadingFrames || __VLS_ctx.loadingVision),
 });
 (__VLS_ctx.loadingMeta ? "提取中..." : "解析视频信息并注入Text content");
 __VLS_asFunctionalElement(__VLS_intrinsicElements.button, __VLS_intrinsicElements.button)({
     ...{ onClick: (__VLS_ctx.onGenerateFrames) },
     type: "button",
+    ...{ class: "cyber-btn" },
     disabled: (__VLS_ctx.loadingMeta || __VLS_ctx.loadingFrames || __VLS_ctx.loadingVision),
 });
 (__VLS_ctx.loadingFrames ? "生成中..." : "生成关键截图");
@@ -190,16 +198,19 @@ if (__VLS_ctx.frames.length > 0) {
     __VLS_asFunctionalElement(__VLS_intrinsicElements.button, __VLS_intrinsicElements.button)({
         ...{ onClick: (__VLS_ctx.selectAllFrames) },
         type: "button",
+        ...{ class: "cyber-btn toolbar-btn" },
     });
     __VLS_asFunctionalElement(__VLS_intrinsicElements.button, __VLS_intrinsicElements.button)({
         ...{ onClick: (__VLS_ctx.clearSelectedFrames) },
         type: "button",
+        ...{ class: "cyber-btn toolbar-btn" },
     });
     __VLS_asFunctionalElement(__VLS_intrinsicElements.label, __VLS_intrinsicElements.label)({
         ...{ class: "language-label" },
     });
     __VLS_asFunctionalElement(__VLS_intrinsicElements.select, __VLS_intrinsicElements.select)({
         value: (__VLS_ctx.visionTargetLanguage),
+        ...{ class: "cyber-field lang-select" },
     });
     __VLS_asFunctionalElement(__VLS_intrinsicElements.option, __VLS_intrinsicElements.option)({
         value: "auto",
@@ -210,7 +221,9 @@ if (__VLS_ctx.frames.length > 0) {
     __VLS_asFunctionalElement(__VLS_intrinsicElements.option, __VLS_intrinsicElements.option)({
         value: "en",
     });
-    __VLS_asFunctionalElement(__VLS_intrinsicElements.span, __VLS_intrinsicElements.span)({});
+    __VLS_asFunctionalElement(__VLS_intrinsicElements.span, __VLS_intrinsicElements.span)({
+        ...{ class: "toolbar-count" },
+    });
     (__VLS_ctx.selectedFrames.length);
     (__VLS_ctx.frames.length);
 }
@@ -236,6 +249,7 @@ if (__VLS_ctx.frames.length > 0) {
         __VLS_asFunctionalElement(__VLS_intrinsicElements.img)({
             src: (__VLS_ctx.resolveVideoAssetUrl(frame.imageUrl)),
             alt: (frame.fileName),
+            crossorigin: "use-credentials",
             loading: "lazy",
         });
     }
@@ -247,35 +261,50 @@ if (__VLS_ctx.frames.length > 0) {
     __VLS_asFunctionalElement(__VLS_intrinsicElements.button, __VLS_intrinsicElements.button)({
         ...{ onClick: (__VLS_ctx.onInsertMarkdown) },
         type: "button",
-        ...{ class: "insert-btn" },
+        ...{ class: "cyber-btn insert-btn" },
         disabled: (__VLS_ctx.selectedFrames.length === 0 || __VLS_ctx.loadingVision),
     });
     __VLS_asFunctionalElement(__VLS_intrinsicElements.button, __VLS_intrinsicElements.button)({
         ...{ onClick: (__VLS_ctx.onGenerateVisionText) },
         type: "button",
-        ...{ class: "insert-btn" },
+        ...{ class: "cyber-btn-primary insert-btn" },
         disabled: (__VLS_ctx.selectedFrames.length === 0 || __VLS_ctx.loadingVision),
     });
     (__VLS_ctx.loadingVision ? "图生文提取中..." : "图生文提取并注入Text content");
 }
 if (__VLS_ctx.errorMessage) {
     __VLS_asFunctionalElement(__VLS_intrinsicElements.p, __VLS_intrinsicElements.p)({
-        ...{ class: "error" },
+        ...{ class: "cyber-error video-error" },
     });
     (__VLS_ctx.errorMessage);
 }
-/** @type {__VLS_StyleScopedClasses['video-card']} */ ;
-/** @type {__VLS_StyleScopedClasses['field-label']} */ ;
+/** @type {__VLS_StyleScopedClasses['video-panel']} */ ;
+/** @type {__VLS_StyleScopedClasses['video-heading']} */ ;
+/** @type {__VLS_StyleScopedClasses['cyber-display']} */ ;
+/** @type {__VLS_StyleScopedClasses['cyber-field-label']} */ ;
+/** @type {__VLS_StyleScopedClasses['cyber-field']} */ ;
 /** @type {__VLS_StyleScopedClasses['actions']} */ ;
+/** @type {__VLS_StyleScopedClasses['cyber-btn']} */ ;
+/** @type {__VLS_StyleScopedClasses['cyber-btn']} */ ;
 /** @type {__VLS_StyleScopedClasses['meta']} */ ;
 /** @type {__VLS_StyleScopedClasses['grid-toolbar']} */ ;
+/** @type {__VLS_StyleScopedClasses['cyber-btn']} */ ;
+/** @type {__VLS_StyleScopedClasses['toolbar-btn']} */ ;
+/** @type {__VLS_StyleScopedClasses['cyber-btn']} */ ;
+/** @type {__VLS_StyleScopedClasses['toolbar-btn']} */ ;
 /** @type {__VLS_StyleScopedClasses['language-label']} */ ;
+/** @type {__VLS_StyleScopedClasses['cyber-field']} */ ;
+/** @type {__VLS_StyleScopedClasses['lang-select']} */ ;
+/** @type {__VLS_StyleScopedClasses['toolbar-count']} */ ;
 /** @type {__VLS_StyleScopedClasses['frame-grid']} */ ;
 /** @type {__VLS_StyleScopedClasses['frame-item']} */ ;
 /** @type {__VLS_StyleScopedClasses['insert-actions']} */ ;
+/** @type {__VLS_StyleScopedClasses['cyber-btn']} */ ;
 /** @type {__VLS_StyleScopedClasses['insert-btn']} */ ;
+/** @type {__VLS_StyleScopedClasses['cyber-btn-primary']} */ ;
 /** @type {__VLS_StyleScopedClasses['insert-btn']} */ ;
-/** @type {__VLS_StyleScopedClasses['error']} */ ;
+/** @type {__VLS_StyleScopedClasses['cyber-error']} */ ;
+/** @type {__VLS_StyleScopedClasses['video-error']} */ ;
 var __VLS_dollars;
 const __VLS_self = (await import('vue')).defineComponent({
     setup() {

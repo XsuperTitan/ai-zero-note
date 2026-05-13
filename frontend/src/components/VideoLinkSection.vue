@@ -157,21 +157,32 @@ function onInsertMarkdown() {
 </script>
 
 <template>
-  <section class="video-card">
-    <h3>视频链接解析与截图</h3>
+  <section class="video-panel">
+    <h3 class="video-heading cyber-display">视频链接解析与截图</h3>
 
-    <label class="field-label">视频链接</label>
+    <label class="cyber-field-label">视频链接</label>
     <input
       v-model.trim="videoUrl"
+      class="cyber-field"
       type="url"
       placeholder="https://www.bilibili.com/... 或 https://www.youtube.com/..."
     />
 
     <div class="actions">
-      <button type="button" :disabled="loadingMeta || loadingFrames || loadingVision" @click="onParseMeta">
+      <button
+        type="button"
+        class="cyber-btn"
+        :disabled="loadingMeta || loadingFrames || loadingVision"
+        @click="onParseMeta"
+      >
         {{ loadingMeta ? "提取中..." : "解析视频信息并注入Text content" }}
       </button>
-      <button type="button" :disabled="loadingMeta || loadingFrames || loadingVision" @click="onGenerateFrames">
+      <button
+        type="button"
+        class="cyber-btn"
+        :disabled="loadingMeta || loadingFrames || loadingVision"
+        @click="onGenerateFrames"
+      >
         {{ loadingFrames ? "生成中..." : "生成关键截图" }}
       </button>
     </div>
@@ -183,17 +194,17 @@ function onInsertMarkdown() {
     </div>
 
     <div v-if="frames.length > 0" class="grid-toolbar">
-      <button type="button" @click="selectAllFrames">全选</button>
-      <button type="button" @click="clearSelectedFrames">清空</button>
+      <button type="button" class="cyber-btn toolbar-btn" @click="selectAllFrames">全选</button>
+      <button type="button" class="cyber-btn toolbar-btn" @click="clearSelectedFrames">清空</button>
       <label class="language-label">
         输出语言
-        <select v-model="visionTargetLanguage">
+        <select v-model="visionTargetLanguage" class="cyber-field lang-select">
           <option value="auto">自动</option>
           <option value="zh">中文</option>
           <option value="en">English</option>
         </select>
       </label>
-      <span>已选 {{ selectedFrames.length }} / {{ frames.length }}</span>
+      <span class="toolbar-count">已选 {{ selectedFrames.length }} / {{ frames.length }}</span>
     </div>
 
     <div v-if="frames.length > 0" class="frame-grid">
@@ -208,14 +219,19 @@ function onInsertMarkdown() {
           :checked="selectedFrameNames.has(frame.fileName)"
           @change="toggleFrame(frame.fileName)"
         />
-        <img :src="resolveVideoAssetUrl(frame.imageUrl)" :alt="frame.fileName" loading="lazy" />
+        <img
+          :src="resolveVideoAssetUrl(frame.imageUrl)"
+          :alt="frame.fileName"
+          crossorigin="use-credentials"
+          loading="lazy"
+        />
       </label>
     </div>
 
     <div v-if="frames.length > 0" class="insert-actions">
       <button
         type="button"
-        class="insert-btn"
+        class="cyber-btn insert-btn"
         :disabled="selectedFrames.length === 0 || loadingVision"
         @click="onInsertMarkdown"
       >
@@ -223,7 +239,7 @@ function onInsertMarkdown() {
       </button>
       <button
         type="button"
-        class="insert-btn"
+        class="cyber-btn-primary insert-btn"
         :disabled="selectedFrames.length === 0 || loadingVision"
         @click="onGenerateVisionText"
       >
@@ -231,97 +247,134 @@ function onInsertMarkdown() {
       </button>
     </div>
 
-    <p v-if="errorMessage" class="error">{{ errorMessage }}</p>
+    <p v-if="errorMessage" class="cyber-error video-error">{{ errorMessage }}</p>
   </section>
 </template>
 
 <style scoped>
-.video-card {
-  border-top: 1px solid #eee;
-  margin-top: 1rem;
-  padding-top: 1rem;
+.video-panel {
+  border-top: 1px solid rgba(46, 255, 233, 0.14);
+  margin-top: 1.15rem;
+  padding-top: 1.15rem;
 }
 
-.field-label {
-  display: block;
-  font-weight: 600;
-  margin-bottom: 0.3rem;
-}
-
-input[type="url"] {
-  box-sizing: border-box;
-  padding: 0.5rem;
-  width: 100%;
+.video-heading {
+  font-size: 0.95rem;
+  letter-spacing: 0.12em;
+  margin: 0 0 0.35rem;
+  color: var(--text-primary);
 }
 
 .actions {
   display: flex;
-  gap: 0.6rem;
-  margin-top: 0.8rem;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+  margin-top: 0.75rem;
+}
+
+.actions .cyber-btn {
+  margin-top: 0;
 }
 
 .meta {
-  margin-top: 0.8rem;
+  margin-top: 0.85rem;
+  color: var(--text-primary);
 }
 
 .meta p {
-  margin: 0.2rem 0;
+  margin: 0.25rem 0;
+}
+
+.meta strong {
+  color: var(--accent-cyan);
+  font-weight: 600;
 }
 
 .grid-toolbar {
   align-items: center;
   display: flex;
-  gap: 0.6rem;
-  margin: 0.8rem 0;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+  margin: 0.85rem 0;
+}
+
+.toolbar-btn {
+  margin-top: 0 !important;
+}
+
+.toolbar-count {
+  color: var(--text-dim);
+  font-size: 0.88rem;
 }
 
 .language-label {
   align-items: center;
+  color: var(--text-dim);
   display: inline-flex;
-  gap: 0.3rem;
+  gap: 0.4rem;
+  font-size: 0.85rem;
+}
+
+.lang-select {
+  width: auto;
+  min-width: 7rem;
+  padding: 0.35rem 0.55rem;
+  font-size: 0.88rem;
 }
 
 .frame-grid {
   display: grid;
-  gap: 0.6rem;
+  gap: 0.65rem;
   grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
 }
 
 .frame-item {
-  border: 1px solid #ddd;
-  border-radius: 8px;
+  border: 1px solid rgba(46, 255, 233, 0.28);
+  border-radius: 11px;
   cursor: pointer;
   overflow: hidden;
-  padding: 0.3rem;
+  padding: 0.35rem;
+  box-shadow: inset 0 0 0 1px rgba(255, 45, 171, 0.06);
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.frame-item:hover {
+  border-color: rgba(46, 255, 233, 0.45);
 }
 
 .frame-item.selected {
-  border-color: #2f81f7;
+  border-color: var(--accent-magenta);
+  box-shadow:
+    0 0 14px rgba(255, 45, 171, 0.28),
+    inset 0 0 20px rgba(46, 255, 233, 0.06);
 }
 
 .frame-item input {
-  margin-bottom: 0.3rem;
+  margin-bottom: 0.35rem;
 }
 
 .frame-item img {
+  border-radius: 7px;
   display: block;
   height: 100px;
   object-fit: cover;
   width: 100%;
 }
 
-.insert-btn {
-  margin-top: 0;
-}
-
 .insert-actions {
   display: flex;
-  gap: 0.6rem;
-  margin-top: 0.8rem;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+  margin-top: 0.85rem;
 }
 
-.error {
-  color: #c00;
-  margin-top: 0.8rem;
+.insert-btn {
+  margin-top: 0 !important;
+}
+
+.video-error {
+  margin-top: 0.85rem;
 }
 </style>
