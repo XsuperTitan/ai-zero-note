@@ -4,6 +4,21 @@ server:
 spring:
   config:
     import: optional:file:.env.local[.properties],optional:file:./backend/.env.local[.properties]
+  datasource:
+    url: ${MYSQL_URL:jdbc:mysql://127.0.0.1:3306/aizeronote?useUnicode=true&characterEncoding=utf8&serverTimezone=UTC}
+    username: ${MYSQL_USERNAME:root}
+    password: ${MYSQL_PASSWORD:}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQLDialect
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
   servlet:
     multipart:
       max-file-size: 25MB
@@ -37,6 +52,8 @@ vision:
   max-frames: ${VISION_MAX_FRAMES:30}
 
 app:
+  registration:
+    invite-code: ${REGISTRATION_INVITE_CODE:ninifun}
   storage:
     output-dir: ${APP_OUTPUT_DIR:outputs}
     max-upload-size-bytes: ${APP_MAX_UPLOAD_SIZE_BYTES:26214400}

@@ -1,4 +1,5 @@
-const API_BASE = "http://localhost:8080/api/video";
+import { apiFetch, API_ORIGIN } from "./client";
+const API_BASE = `${API_ORIGIN}/api/video`;
 function toErrorMessage(defaultMessage, payload) {
     if (payload && typeof payload === "object" && "error" in payload) {
         const value = payload.error;
@@ -9,7 +10,7 @@ function toErrorMessage(defaultMessage, payload) {
     return defaultMessage;
 }
 async function request(url, defaultError) {
-    const response = await fetch(url);
+    const response = await apiFetch(url);
     if (!response.ok) {
         const errorBody = await response.json().catch(() => ({}));
         throw new Error(toErrorMessage(defaultError, errorBody));
@@ -37,5 +38,5 @@ export function resolveVideoAssetUrl(path) {
     if (path.startsWith("http://") || path.startsWith("https://")) {
         return path;
     }
-    return `http://localhost:8080${path}`;
+    return `${API_ORIGIN}${path}`;
 }

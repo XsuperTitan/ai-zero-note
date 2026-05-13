@@ -1,3 +1,5 @@
+import { apiFetch, API_ORIGIN } from "./client";
+
 export interface NoteResult {
   noteId: string;
   sourceFilename: string;
@@ -29,7 +31,7 @@ export async function processMixedInput(input: MixedInput): Promise<NoteResult> 
     formData.append("textContent", input.textContent.trim());
   }
 
-  const response = await fetch("http://localhost:8080/api/notes/process-mixed", {
+  const response = await apiFetch(`${API_ORIGIN}/api/notes/process-mixed`, {
     method: "POST",
     body: formData
   });
