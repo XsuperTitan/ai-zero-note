@@ -2,7 +2,9 @@ package com.aizeronote.service;
 
 import com.aizeronote.config.AppStorageProperties;
 import com.aizeronote.model.NoteResult;
+import com.aizeronote.model.NoteStyle;
 import com.aizeronote.model.NoteSummary;
+import com.aizeronote.model.OutputLanguage;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -49,7 +51,10 @@ public class NotePipelineService {
                 summary.codeSnippets(),
                 summary.todos(),
                 generated.markdownPreview(),
-                "/api/notes/download/" + generated.filePath().getFileName()
+                "/api/notes/download/" + generated.filePath().getFileName(),
+                NoteStyle.LEARNING,
+                OutputLanguage.AUTO,
+                ""
         );
     }
 

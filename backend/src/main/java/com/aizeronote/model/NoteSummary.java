@@ -8,6 +8,7 @@ public record NoteSummary(
         List<String> keyPoints,
         List<String> codeSnippets,
         List<String> todos,
-        String markdownContent
+        String markdownContent,
+        String mindMapJson
 ) {
 }

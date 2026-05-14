@@ -12,6 +12,9 @@ public record NoteResult(
         List<String> codeSnippets,
         List<String> todos,
         String markdownPreview,
-        String downloadUrl
+        String downloadUrl,
+        NoteStyle noteStyle,
+        OutputLanguage outputLanguage,
+        String mindMapJson
 ) {
 }

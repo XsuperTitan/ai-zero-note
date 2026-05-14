@@ -1,5 +1,9 @@
 import { apiFetch, API_ORIGIN } from "./client";
 
+export type NoteStyle = "LEARNING" | "DETAILED" | "MIND_MAP";
+
+export type OutputLanguage = "ZH" | "EN" | "BILINGUAL" | "AUTO";
+
 export interface NoteResult {
   noteId: string;
   sourceFilename: string;
@@ -11,12 +15,17 @@ export interface NoteResult {
   todos: string[];
   markdownPreview: string;
   downloadUrl: string;
+  noteStyle?: NoteStyle;
+  outputLanguage?: OutputLanguage;
+  mindMapJson?: string | null;
 }
 
 interface MixedInput {
   audioFile?: File | null;
   textFile?: File | null;
   textContent?: string;
+  noteStyle?: NoteStyle;
+  outputLanguage?: OutputLanguage;
 }
 
 export async function processMixedInput(input: MixedInput): Promise<NoteResult> {
@@ -30,16 +39,19 @@ export async function processMixedInput(input: MixedInput): Promise<NoteResult> 
   if (input.textContent && input.textContent.trim().length > 0) {
     formData.append("textContent", input.textContent.trim());
   }
+  formData.append("noteStyle", input.noteStyle ?? "LEARNING");
+  formData.append("outputLanguage", input.outputLanguage ?? "AUTO");
 
   const response = await apiFetch(`${API_ORIGIN}/api/notes/process-mixed`, {
     method: "POST",
     body: formData
   });
 
+  const body = await response.json().catch(() => ({}));
+
   if (!response.ok) {
-    const errorBody = await response.json().catch(() => ({ error: "Upload failed" }));
-    throw new Error(errorBody.error ?? "Upload failed");
+    throw new Error(typeof body.error === "string" ? body.error : "Upload failed");
   }
 
-  return (await response.json()) as NoteResult;
+  return body as NoteResult;
 }

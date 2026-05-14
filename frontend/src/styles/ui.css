@@ -1,0 +1,380 @@
+/* Layout shell: grid + scanlines (low opacity) */
+
+.app-shell {
+  position: relative;
+  min-height: 100vh;
+  z-index: 0;
+}
+
+.app-shell::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.04;
+  background-image:
+    linear-gradient(115deg, rgba(46, 255, 233, 0.35) 1px, transparent 1px),
+    linear-gradient(rgba(46, 255, 233, 0.22) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 45, 171, 0.12) 1px, transparent 1px);
+  background-size:
+    72px 72px,
+    28px 28px,
+    56px 56px;
+}
+
+.app-shell::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 9998;
+  pointer-events: none;
+  opacity: 0.035;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0, 0, 0, 0.45) 2px,
+    rgba(0, 0, 0, 0.45) 4px
+  );
+}
+
+.app-shell__main {
+  position: relative;
+  z-index: 1;
+}
+
+/* Navigation */
+
+.cyber-nav {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  padding: 0.85rem 1.25rem;
+  font-family: var(--font-body);
+  background: rgba(10, 8, 24, 0.65);
+  backdrop-filter: blur(14px);
+  border-bottom: 1px solid rgba(46, 255, 233, 0.18);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.35), inset 0 -1px 0 rgba(255, 45, 171, 0.08);
+}
+
+.cyber-nav a {
+  color: var(--accent-cyan);
+  text-decoration: none;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  font-size: 0.95rem;
+  text-transform: uppercase;
+  transition:
+    color 0.2s ease,
+    filter 0.2s ease;
+}
+
+.cyber-nav a:hover {
+  color: var(--text-primary);
+  filter: drop-shadow(0 0 8px var(--border-glow));
+}
+
+.cyber-nav .who {
+  font-size: 0.88rem;
+  color: var(--text-dim);
+  letter-spacing: 0.02em;
+}
+
+.cyber-nav .linklike {
+  background: none;
+  border: none;
+  color: var(--accent-magenta);
+  cursor: pointer;
+  font: inherit;
+  padding: 0;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.cyber-nav .linklike:hover {
+  color: var(--accent-cyan);
+}
+
+.cyber-nav .spacer {
+  flex: 1;
+}
+
+/* Display title — subtle glitch only here */
+
+.cyber-display {
+  font-family: var(--font-display);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.cyber-title-glitch {
+  animation: cyber-glitch-nudge 14s ease-in-out infinite;
+}
+
+@keyframes cyber-glitch-nudge {
+  0%,
+  91%,
+  100% {
+    transform: translate(0, 0) skew(0deg);
+    text-shadow:
+      0 0 24px rgba(46, 255, 233, 0.35),
+      0 0 48px rgba(255, 45, 171, 0.15);
+  }
+  93% {
+    transform: translate(-2px, 0) skew(-0.6deg);
+    text-shadow:
+      2px 0 var(--accent-magenta),
+      -2px 0 var(--accent-cyan);
+  }
+  95% {
+    transform: translate(1px, 0) skew(0.4deg);
+    text-shadow:
+      -1px 0 var(--accent-magenta),
+      1px 0 var(--accent-cyan);
+  }
+}
+
+.cyber-muted {
+  color: var(--text-dim);
+  font-size: 0.95rem;
+}
+
+/* Cards */
+
+.cyber-card {
+  position: relative;
+  z-index: 1;
+  background: var(--surface);
+  backdrop-filter: blur(14px);
+  border-radius: var(--radius-panel);
+  padding: 1.35rem 1.45rem;
+  margin-top: 1.1rem;
+  border: 1px solid rgba(46, 255, 233, 0.28);
+  box-shadow:
+    0 0 0 1px rgba(255, 45, 171, 0.14),
+    0 0 36px rgba(46, 255, 233, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+.cyber-card h2,
+.cyber-card h3 {
+  font-family: var(--font-display);
+  letter-spacing: 0.05em;
+  margin-top: 0;
+}
+
+/* Fields */
+
+.cyber-field-label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 0.35rem;
+  margin-top: 0.85rem;
+  font-size: 0.82rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+
+.cyber-field-label:first-of-type {
+  margin-top: 0;
+}
+
+input.cyber-field,
+textarea.cyber-field,
+select.cyber-field {
+  width: 100%;
+  padding: 0.65rem 0.85rem;
+  font-family: inherit;
+  font-size: 1rem;
+  color: var(--text-primary);
+  background: rgba(6, 5, 18, 0.92);
+  border: 1px solid rgba(46, 255, 233, 0.38);
+  border-radius: var(--radius-input);
+  transition:
+    border-color 0.25s ease,
+    box-shadow 0.25s ease;
+}
+
+textarea.cyber-field {
+  resize: vertical;
+  min-height: 7rem;
+}
+
+input.cyber-field::placeholder,
+textarea.cyber-field::placeholder {
+  color: rgba(195, 225, 245, 0.35);
+}
+
+input.cyber-field:hover,
+textarea.cyber-field:hover {
+  border-color: rgba(46, 255, 233, 0.55);
+}
+
+input.cyber-field:focus,
+textarea.cyber-field:focus,
+select.cyber-field:focus {
+  outline: none;
+  border-color: var(--accent-magenta);
+  box-shadow:
+    0 0 0 2px rgba(255, 45, 171, 0.28),
+    0 0 22px rgba(46, 255, 233, 0.12);
+}
+
+input[type="file"].cyber-field {
+  padding: 0.45rem;
+  cursor: pointer;
+}
+
+/* Buttons */
+
+.cyber-btn {
+  margin-top: 0.85rem;
+  padding: 0.58rem 1.35rem;
+  font-family: inherit;
+  font-weight: 600;
+  font-size: 0.95rem;
+  letter-spacing: 0.05em;
+  border-radius: 11px;
+  border: 1px solid rgba(46, 255, 233, 0.35);
+  cursor: pointer;
+  color: var(--text-primary);
+  background: rgba(12, 22, 48, 0.75);
+  transition:
+    filter 0.22s ease,
+    border-color 0.22s ease,
+    box-shadow 0.22s ease;
+}
+
+.cyber-btn:hover:not(:disabled) {
+  filter: brightness(1.08);
+  border-color: var(--border-glow);
+  box-shadow: 0 0 18px rgba(46, 255, 233, 0.18);
+}
+
+.cyber-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.cyber-btn-primary {
+  margin-top: 0.85rem;
+  padding: 0.62rem 1.45rem;
+  font-family: inherit;
+  font-weight: 700;
+  font-size: 0.95rem;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  color: #06040f;
+  background: linear-gradient(
+    105deg,
+    var(--accent-cyan) 0%,
+    var(--accent-lime) 42%,
+    var(--accent-magenta) 100%
+  );
+  background-size: 200% 100%;
+  box-shadow:
+    0 0 22px rgba(46, 255, 233, 0.28),
+    inset 0 1px 0 rgba(255, 255, 255, 0.35);
+  transition:
+    filter 0.28s ease,
+    background-position 0.4s ease,
+    box-shadow 0.28s ease;
+}
+
+.cyber-btn-primary:hover:not(:disabled) {
+  filter: brightness(1.14) saturate(1.06);
+  background-position: 70% 0;
+  box-shadow:
+    0 0 30px rgba(255, 45, 171, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.45);
+}
+
+.cyber-btn-primary:disabled {
+  opacity: 0.42;
+  cursor: not-allowed;
+  filter: grayscale(0.25);
+}
+
+.cyber-link {
+  color: var(--accent-cyan);
+  text-decoration: none;
+  font-weight: 600;
+  transition:
+    color 0.2s ease,
+    filter 0.2s ease;
+}
+
+.cyber-link:hover {
+  color: var(--accent-magenta);
+  filter: drop-shadow(0 0 6px var(--border-glow-magenta));
+}
+
+.cyber-download {
+  display: inline-block;
+  margin-top: 0.6rem;
+}
+
+.cyber-error {
+  color: var(--danger);
+  margin-top: 0.65rem;
+  font-size: 0.92rem;
+}
+
+.cyber-pre {
+  margin-top: 1rem;
+  padding: 1rem 1.1rem;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  font-family: ui-monospace, "Cascadia Code", "SF Mono", Menlo, monospace;
+  font-size: 0.82rem;
+  line-height: 1.5;
+  color: rgba(215, 245, 255, 0.88);
+  background: rgba(4, 3, 14, 0.92);
+  border-radius: 12px;
+  border: 1px solid rgba(46, 255, 233, 0.18);
+  box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.45);
+}
+
+/* Auth pages */
+
+.cyber-auth-page {
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 2.25rem 1.25rem 3rem;
+}
+
+.cyber-auth-page .title {
+  margin: 0 0 0.5rem;
+  text-align: center;
+  font-family: var(--font-display);
+  font-size: 1.35rem;
+  letter-spacing: 0.08em;
+}
+
+.cyber-auth-page .desc {
+  color: var(--text-dim);
+  font-size: 0.92rem;
+  margin-bottom: 1.35rem;
+  text-align: center;
+}
+
+.cyber-auth-page .tips {
+  color: var(--text-dim);
+  font-size: 0.82rem;
+  margin: 0.65rem 0;
+  text-align: right;
+}
+
+.cyber-auth-page form.cyber-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}

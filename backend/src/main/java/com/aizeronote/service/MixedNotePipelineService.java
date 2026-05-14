@@ -2,7 +2,9 @@ package com.aizeronote.service;
 
 import com.aizeronote.config.AppStorageProperties;
 import com.aizeronote.model.NoteResult;
+import com.aizeronote.model.NoteStyle;
 import com.aizeronote.model.NoteSummary;
+import com.aizeronote.model.OutputLanguage;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
@@ -36,7 +38,13 @@ public class MixedNotePipelineService {
         this.markdownService = markdownService;
     }
 
-    public NoteResult processMixed(MultipartFile audioFile, MultipartFile textFile, String textContent) {
+    public NoteResult processMixed(
+            MultipartFile audioFile,
+            MultipartFile textFile,
+            String textContent,
+            NoteStyle noteStyle,
+            OutputLanguage outputLanguage
+    ) {
         boolean hasAudio = audioFile != null && !audioFile.isEmpty();
         boolean hasTextFile = textFile != null && !textFile.isEmpty();
         boolean hasTextContent = StringUtils.hasText(textContent);
@@ -54,11 +62,18 @@ public class MixedNotePipelineService {
         String transcription = hasAudio ? transcriptionService.transcribeWithDefaultProvider(audioFile) : "";
         String supplementalText = mergeSupplementalText(textFile, textContent);
 
-        NoteSummary summary = summaryService.summarizeWithSupplemental(transcription, supplementalText);
+        NoteSummary summary = summaryService.summarizeWithSupplemental(
+                transcription,
+                supplementalText,
+                noteStyle,
+                outputLanguage
+        );
         String sourceName = buildSourceName(audioFile, textFile, textContent, summary.title());
         MarkdownService.GeneratedMarkdown generated = markdownService.generate(sourceName, transcription, summary);
 
         String displayedTranscription = StringUtils.hasText(transcription) ? transcription : supplementalText;
+        String mindPayload = summary.mindMapJson() != null ? summary.mindMapJson() : "";
+        mindPayload = noteStyle != NoteStyle.MIND_MAP ? "" : mindPayload;
         return new NoteResult(
                 generated.noteId(),
                 sourceName,
@@ -69,7 +84,10 @@ public class MixedNotePipelineService {
                 summary.codeSnippets(),
                 summary.todos(),
                 generated.markdownPreview(),
-                "/api/notes/download/" + generated.filePath().getFileName()
+                "/api/notes/download/" + generated.filePath().getFileName(),
+                noteStyle,
+                outputLanguage,
+                mindPayload
         );
     }
 

@@ -26,6 +26,10 @@ AI Zero Notes supports two input paths:
   - Vision text extraction is triggered after screenshot generation:
     - Select screenshots in UI
     - Click "图生文提取并注入Text content"
+- Picture note (sketch-note style PNG), async after notes exist:
+  - Uses text buffer or generated note preview as source (`POST /api/notes/image-note-jobs`), poll status, then download PNG
+  - Backend providers: OpenAI Images API (`IMAGE_NOTES_PROVIDER=openai`) or Alibaba WAN / DashScope sync path (`IMAGE_NOTES_PROVIDER=wanx`)
+  - Errors such as **`Image notes are disabled`** are emitted **before** any image HTTP call — they indicate configuration/state, not a failed upstream model round-trip
 - Robust external-tool handling:
   - Auto-detect executable paths for `yt-dlp` / `ffmpeg`
   - Optional YouTube cookies support (`cookies-from-browser` or cookie file)
@@ -60,7 +64,7 @@ cd backend
 mvn spring-boot:run
 ```
 
-`backend/.env.local` is auto-loaded by Spring Boot if present.
+Configuration reads **`backend/.env.local` from disk** (`spring.config.import` plus an early `EnvironmentPostProcessor`). Changes in the editor are ignored until **you save the file** (otherwise the JVM only sees stale or missing keys).
 
 ## Run Frontend
 
@@ -88,6 +92,14 @@ Common optional environment variables:
   - `VISION_ENABLED` (default: `true`)
   - `VISION_BASE_URL`, `VISION_API_KEY`, `VISION_MODEL`, `VISION_PROMPT`
   - `VISION_MAX_FRAMES` (default: `30`)
+- Picture / image notes (optional):
+  - `IMAGE_NOTES_ENABLED` (`true` / `false`); omitting it leaves YAML default off unless you configure WAN implicitly (provider + keys — see below)
+  - `IMAGE_NOTES_PROVIDER`: `openai` (default) or `wanx` (DashScope WAN sync HTTP)
+  - `IMAGE_NOTES_API_KEY`; if unset, `VISION_API_KEY` is used via `application.yml` chaining for many setups
+  - `IMAGE_NOTES_BASE_URL` (OpenAI-compatible root, OpenAI branch)
+  - `IMAGE_NOTES_WAN_BASE_URL` (WAN HTTP root; defaults in YAML to DashScope when unset)
+  - `IMAGE_NOTES_MODEL`, `IMAGE_NOTES_SIZE`, `IMAGE_NOTES_MAX_SOURCE_CHARS`
+  - Troubleshooting: on failure before generation, logs include a **`[image-notes GATE]`** line (`diskFlat.IMAGE_NOTES_*` reflects **parsed disk file**, not unsaved IDE buffers).
 - Storage:
   - `APP_OUTPUT_DIR` (default: `outputs`)
   - `APP_MAX_UPLOAD_SIZE_BYTES` (default: `26214400`)
@@ -110,6 +122,14 @@ Example (`backend/.env.local`):
 VIDEO_YT_DLP_COOKIES_FROM_BROWSER=chrome
 ```
 
+Picture notes (WAN + vision key chaining), after saving the file:
+
+```properties
+IMAGE_NOTES_ENABLED=true
+IMAGE_NOTES_PROVIDER=wanx
+# VISION_API_KEY or IMAGE_NOTES_API_KEY supplies the WAN API key when using wanx
+```
+
 ## API Overview
 
 Notes API:
@@ -119,6 +139,9 @@ Notes API:
 - `POST /api/notes/compare-transcription`
 - `GET /api/notes/asr-status`
 - `GET /api/notes/download/{fileName}`
+- `POST /api/notes/image-note-jobs` (JSON `{ "sourceText": "..." }`; session cookie auth)
+- `GET /api/notes/image-note-jobs/{jobId}`
+- `GET /api/notes/image-download/{fileName}`
 
 Video API:
 
@@ -141,6 +164,6 @@ curl -X POST "http://localhost:8080/api/notes/compare-transcription" \
 
 ## Current MVP Limits
 
-- No auth or task history yet.
+- Session-based login/register; persisted note/video task history endpoints exist — scope is still MVP-level.
 - Video subtitle availability depends on source platform/video.
 - Video text extraction may require valid cookies for some YouTube links.

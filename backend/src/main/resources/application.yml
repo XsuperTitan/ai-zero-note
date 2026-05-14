@@ -3,7 +3,7 @@ server:
 
 spring:
   config:
-    import: optional:file:.env.local[.properties],optional:file:./backend/.env.local[.properties]
+    import: optional:file:.env.local[.properties],optional:file:./backend/.env.local[.properties],optional:file:backend/.env.local[.properties],optional:file:${user.dir}/.env.local[.properties],optional:file:${user.dir}/backend/.env.local[.properties]
   datasource:
     url: ${MYSQL_URL:jdbc:mysql://127.0.0.1:3306/aizeronote?useUnicode=true&characterEncoding=utf8&serverTimezone=UTC}
     username: ${MYSQL_USERNAME:root}
@@ -42,6 +42,17 @@ summary:
   api-key: ${SUMMARY_API_KEY:${DEEPSEEK_API_KEY:${OPENAI_API_KEY:}}}
   model: ${SUMMARY_MODEL:${DEEPSEEK_MODEL:${OPENAI_SUMMARY_MODEL:deepseek-chat}}}
   user-prompt: ${SUMMARY_USER_PROMPT:以上是某视频的学习录音，要求根据上述转写内容生成详细的英文学习笔记。目标是让我用更通俗的方式理解视频内容。请覆盖：1) 核心概念解释（简单易懂）；2) 关键术语中英对照与释义；3) 重要知识点分层总结；4) 示例句或可复用表达；5) 容易混淆点与纠错建议；6) 最后给出复习清单和可执行练习建议。}
+
+image-notes:
+  # IMAGE_NOTES_* from .env / MapPropertySource must feed bindable image-notes.* (see Spring externalized config / relaxed binding docs).
+  enabled: ${IMAGE_NOTES_ENABLED:false}
+  provider: ${IMAGE_NOTES_PROVIDER:openai}
+  base-url: ${IMAGE_NOTES_BASE_URL:${OPENAI_BASE_URL:https://api.openai.com/v1}}
+  wan-base-url: ${IMAGE_NOTES_WAN_BASE_URL:https://dashscope.aliyuncs.com/api/v1}
+  api-key: ${IMAGE_NOTES_API_KEY:${VISION_API_KEY:${OPENAI_API_KEY:}}}
+  model: ${IMAGE_NOTES_MODEL:}
+  size: ${IMAGE_NOTES_SIZE:}
+  max-source-chars: ${IMAGE_NOTES_MAX_SOURCE_CHARS:12000}
 
 vision:
   enabled: ${VISION_ENABLED:true}

@@ -1,15 +1,93 @@
-import { ref } from "vue";
+import { computed, onUnmounted, ref } from "vue";
 import { API_ORIGIN } from "../api/client";
+import { enqueueImageNoteJob, getImageNoteJob } from "../api/imageNote";
 import { processMixedInput } from "../api/note";
+import MindMapMermaid from "../components/MindMapMermaid.vue";
 import VideoLinkSection from "../components/VideoLinkSection.vue";
 import { insertAtCaret } from "../utils/insertAtCaret";
 const selectedAudioFile = ref(null);
 const selectedTextFile = ref(null);
 const textContent = ref("");
+const noteStyle = ref("LEARNING");
+const outputLanguage = ref("AUTO");
 const loading = ref(false);
 const errorMessage = ref("");
 const result = ref(null);
 const textAreaRef = ref(null);
+const showLanguageSelect = computed(() => noteStyle.value !== "LEARNING");
+let imagePollHandle = null;
+const imageJobLoading = ref(false);
+const imageJobError = ref("");
+const imageJobStatus = ref(null);
+const imageJobId = ref(null);
+const imageDownloadUrl = ref(null);
+const showMindMapPanel = computed(() => Boolean(result.value?.mindMapJson && result.value.mindMapJson.trim().length > 0));
+function composedSourceForImage() {
+    if (textContent.value.trim()) {
+        return textContent.value.trim();
+    }
+    if (result.value?.markdownPreview?.trim()) {
+        return result.value.markdownPreview.trim();
+    }
+    return "";
+}
+function resetImagePolling() {
+    if (imagePollHandle) {
+        clearInterval(imagePollHandle);
+        imagePollHandle = null;
+    }
+}
+async function pollImageOnce(jobId) {
+    try {
+        const st = await getImageNoteJob(jobId);
+        imageJobStatus.value = st.status;
+        if (st.status === "SUCCEEDED") {
+            resetImagePolling();
+            imageDownloadUrl.value = st.downloadUrl ? `${API_ORIGIN}${st.downloadUrl}` : "";
+            imageJobLoading.value = false;
+        }
+        else if (st.status === "FAILED") {
+            resetImagePolling();
+            imageJobError.value = st.errorMessage || "Image generation failed.";
+            imageJobLoading.value = false;
+        }
+    }
+    catch (e) {
+        resetImagePolling();
+        imageJobError.value = e instanceof Error ? e.message : "Image job polling failed";
+        imageJobLoading.value = false;
+    }
+}
+async function onStartImageNote() {
+    const src = composedSourceForImage();
+    if (!src) {
+        imageJobError.value = "Add text content or generate notes before requesting a picture note.";
+        return;
+    }
+    if (imageJobLoading.value) {
+        return;
+    }
+    resetImagePolling();
+    imageJobError.value = "";
+    imageJobLoading.value = true;
+    imageJobStatus.value = null;
+    imageJobId.value = null;
+    imageDownloadUrl.value = null;
+    try {
+        const queued = await enqueueImageNoteJob(src);
+        imageJobId.value = queued.jobId;
+        imageJobStatus.value = queued.status;
+        imagePollHandle = setInterval(() => {
+            void pollImageOnce(queued.jobId);
+        }, 2200);
+        void pollImageOnce(queued.jobId);
+    }
+    catch (e) {
+        imageJobError.value = e instanceof Error ? e.message : "Failed to enqueue image job";
+        imageJobLoading.value = false;
+    }
+}
+onUnmounted(() => resetImagePolling());
 function onSelectAudioFile(event) {
     const target = event.target;
     const file = target.files?.[0] ?? null;
@@ -71,7 +149,9 @@ async function onSubmit() {
         result.value = await processMixedInput({
             audioFile: selectedAudioFile.value,
             textFile: selectedTextFile.value,
-            textContent: textContent.value
+            textContent: textContent.value,
+            noteStyle: noteStyle.value,
+            outputLanguage: outputLanguage.value
         });
     }
     catch (error) {
@@ -156,6 +236,43 @@ __VLS_asFunctionalElement(__VLS_intrinsicElements.textarea)({
     placeholder: "Paste transcript, outline, or learning notes here...",
 });
 /** @type {typeof __VLS_ctx.textAreaRef} */ ;
+__VLS_asFunctionalElement(__VLS_intrinsicElements.label, __VLS_intrinsicElements.label)({
+    ...{ class: "cyber-field-label" },
+});
+__VLS_asFunctionalElement(__VLS_intrinsicElements.select, __VLS_intrinsicElements.select)({
+    value: (__VLS_ctx.noteStyle),
+    ...{ class: "cyber-field" },
+});
+__VLS_asFunctionalElement(__VLS_intrinsicElements.option, __VLS_intrinsicElements.option)({
+    value: "LEARNING",
+});
+__VLS_asFunctionalElement(__VLS_intrinsicElements.option, __VLS_intrinsicElements.option)({
+    value: "DETAILED",
+});
+__VLS_asFunctionalElement(__VLS_intrinsicElements.option, __VLS_intrinsicElements.option)({
+    value: "MIND_MAP",
+});
+if (__VLS_ctx.showLanguageSelect) {
+    __VLS_asFunctionalElement(__VLS_intrinsicElements.label, __VLS_intrinsicElements.label)({
+        ...{ class: "cyber-field-label" },
+    });
+    __VLS_asFunctionalElement(__VLS_intrinsicElements.select, __VLS_intrinsicElements.select)({
+        value: (__VLS_ctx.outputLanguage),
+        ...{ class: "cyber-field" },
+    });
+    __VLS_asFunctionalElement(__VLS_intrinsicElements.option, __VLS_intrinsicElements.option)({
+        value: "AUTO",
+    });
+    __VLS_asFunctionalElement(__VLS_intrinsicElements.option, __VLS_intrinsicElements.option)({
+        value: "ZH",
+    });
+    __VLS_asFunctionalElement(__VLS_intrinsicElements.option, __VLS_intrinsicElements.option)({
+        value: "EN",
+    });
+    __VLS_asFunctionalElement(__VLS_intrinsicElements.option, __VLS_intrinsicElements.option)({
+        value: "BILINGUAL",
+    });
+}
 /** @type {[typeof VideoLinkSection, ]} */ ;
 // @ts-ignore
 const __VLS_0 = __VLS_asFunctionalComponent(VideoLinkSection, new VideoLinkSection({
@@ -193,8 +310,31 @@ if (__VLS_ctx.result) {
     __VLS_asFunctionalElement(__VLS_intrinsicElements.section, __VLS_intrinsicElements.section)({
         ...{ class: "cyber-card" },
     });
+    if (__VLS_ctx.showMindMapPanel) {
+        __VLS_asFunctionalElement(__VLS_intrinsicElements.h3, __VLS_intrinsicElements.h3)({
+            ...{ class: "section-mini-title" },
+        });
+        /** @type {[typeof MindMapMermaid, ]} */ ;
+        // @ts-ignore
+        const __VLS_8 = __VLS_asFunctionalComponent(MindMapMermaid, new MindMapMermaid({
+            mindMapJson: (__VLS_ctx.result.mindMapJson),
+        }));
+        const __VLS_9 = __VLS_8({
+            mindMapJson: (__VLS_ctx.result.mindMapJson),
+        }, ...__VLS_functionalComponentArgsRest(__VLS_8));
+    }
     __VLS_asFunctionalElement(__VLS_intrinsicElements.h2, __VLS_intrinsicElements.h2)({});
     (__VLS_ctx.result.title);
+    if (__VLS_ctx.result.noteStyle) {
+        __VLS_asFunctionalElement(__VLS_intrinsicElements.p, __VLS_intrinsicElements.p)({});
+        __VLS_asFunctionalElement(__VLS_intrinsicElements.strong, __VLS_intrinsicElements.strong)({});
+        (__VLS_ctx.result.noteStyle);
+    }
+    if (__VLS_ctx.result.outputLanguage && __VLS_ctx.result.noteStyle !== 'LEARNING') {
+        __VLS_asFunctionalElement(__VLS_intrinsicElements.p, __VLS_intrinsicElements.p)({});
+        __VLS_asFunctionalElement(__VLS_intrinsicElements.strong, __VLS_intrinsicElements.strong)({});
+        (__VLS_ctx.result.outputLanguage);
+    }
     __VLS_asFunctionalElement(__VLS_intrinsicElements.p, __VLS_intrinsicElements.p)({});
     __VLS_asFunctionalElement(__VLS_intrinsicElements.strong, __VLS_intrinsicElements.strong)({});
     (__VLS_ctx.result.sourceFilename);
@@ -206,6 +346,51 @@ if (__VLS_ctx.result) {
         target: "_blank",
         rel: "noopener",
     });
+    __VLS_asFunctionalElement(__VLS_intrinsicElements.h3, __VLS_intrinsicElements.h3)({
+        ...{ class: "section-mini-title" },
+    });
+    __VLS_asFunctionalElement(__VLS_intrinsicElements.p, __VLS_intrinsicElements.p)({
+        ...{ class: "cyber-muted" },
+    });
+    __VLS_asFunctionalElement(__VLS_intrinsicElements.code, __VLS_intrinsicElements.code)({});
+    __VLS_asFunctionalElement(__VLS_intrinsicElements.button, __VLS_intrinsicElements.button)({
+        ...{ onClick: (__VLS_ctx.onStartImageNote) },
+        type: "button",
+        ...{ class: "cyber-btn-primary" },
+        disabled: (__VLS_ctx.imageJobLoading),
+    });
+    (__VLS_ctx.imageJobLoading
+        ? __VLS_ctx.imageJobStatus
+            ? `Image job: ${__VLS_ctx.imageJobStatus}`
+            : "Enqueueing..."
+        : "Generate picture note");
+    if (__VLS_ctx.imageJobId) {
+        __VLS_asFunctionalElement(__VLS_intrinsicElements.p, __VLS_intrinsicElements.p)({
+            ...{ class: "cyber-muted" },
+        });
+        (__VLS_ctx.imageJobId);
+    }
+    if (__VLS_ctx.imageJobError) {
+        __VLS_asFunctionalElement(__VLS_intrinsicElements.p, __VLS_intrinsicElements.p)({
+            ...{ class: "cyber-error" },
+        });
+        (__VLS_ctx.imageJobError);
+    }
+    if (__VLS_ctx.imageDownloadUrl) {
+        __VLS_asFunctionalElement(__VLS_intrinsicElements.a, __VLS_intrinsicElements.a)({
+            ...{ class: "cyber-link cyber-download" },
+            href: (__VLS_ctx.imageDownloadUrl),
+            target: "_blank",
+            rel: "noopener",
+        });
+    }
+    if (__VLS_ctx.imageDownloadUrl) {
+        __VLS_asFunctionalElement(__VLS_intrinsicElements.img)({
+            ...{ class: "image-note-preview" },
+            src: (__VLS_ctx.imageDownloadUrl),
+            alt: "Generated picture note",
+        });
+    }
     __VLS_asFunctionalElement(__VLS_intrinsicElements.pre, __VLS_intrinsicElements.pre)({
         ...{ class: "cyber-pre" },
     });
@@ -223,23 +408,47 @@ if (__VLS_ctx.result) {
 /** @type {__VLS_StyleScopedClasses['cyber-field']} */ ;
 /** @type {__VLS_StyleScopedClasses['cyber-field-label']} */ ;
 /** @type {__VLS_StyleScopedClasses['cyber-field']} */ ;
+/** @type {__VLS_StyleScopedClasses['cyber-field-label']} */ ;
+/** @type {__VLS_StyleScopedClasses['cyber-field']} */ ;
+/** @type {__VLS_StyleScopedClasses['cyber-field-label']} */ ;
+/** @type {__VLS_StyleScopedClasses['cyber-field']} */ ;
 /** @type {__VLS_StyleScopedClasses['cyber-btn-primary']} */ ;
 /** @type {__VLS_StyleScopedClasses['cyber-error']} */ ;
 /** @type {__VLS_StyleScopedClasses['cyber-card']} */ ;
+/** @type {__VLS_StyleScopedClasses['section-mini-title']} */ ;
 /** @type {__VLS_StyleScopedClasses['cyber-link']} */ ;
 /** @type {__VLS_StyleScopedClasses['cyber-download']} */ ;
+/** @type {__VLS_StyleScopedClasses['section-mini-title']} */ ;
+/** @type {__VLS_StyleScopedClasses['cyber-muted']} */ ;
+/** @type {__VLS_StyleScopedClasses['cyber-btn-primary']} */ ;
+/** @type {__VLS_StyleScopedClasses['cyber-muted']} */ ;
+/** @type {__VLS_StyleScopedClasses['cyber-error']} */ ;
+/** @type {__VLS_StyleScopedClasses['cyber-link']} */ ;
+/** @type {__VLS_StyleScopedClasses['cyber-download']} */ ;
+/** @type {__VLS_StyleScopedClasses['image-note-preview']} */ ;
 /** @type {__VLS_StyleScopedClasses['cyber-pre']} */ ;
 var __VLS_dollars;
 const __VLS_self = (await import('vue')).defineComponent({
     setup() {
         return {
             API_ORIGIN: API_ORIGIN,
+            MindMapMermaid: MindMapMermaid,
             VideoLinkSection: VideoLinkSection,
             textContent: textContent,
+            noteStyle: noteStyle,
+            outputLanguage: outputLanguage,
             loading: loading,
             errorMessage: errorMessage,
             result: result,
             textAreaRef: textAreaRef,
+            showLanguageSelect: showLanguageSelect,
+            imageJobLoading: imageJobLoading,
+            imageJobError: imageJobError,
+            imageJobStatus: imageJobStatus,
+            imageJobId: imageJobId,
+            imageDownloadUrl: imageDownloadUrl,
+            showMindMapPanel: showMindMapPanel,
+            onStartImageNote: onStartImageNote,
             onSelectAudioFile: onSelectAudioFile,
             onSelectTextFile: onSelectTextFile,
             onSubmit: onSubmit,
