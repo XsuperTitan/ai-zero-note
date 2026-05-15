@@ -1,4 +1,5 @@
 import { computed, onUnmounted, ref } from "vue";
+import { useRoute, useRouter } from "vue-router";
 import { API_ORIGIN } from "../api/client";
 import { enqueueImageNoteJob, getImageNoteJob } from "../api/imageNote";
 import { processMixedInput } from "../api/note";
@@ -7,6 +8,23 @@ import VideoLinkSection from "../components/VideoLinkSection.vue";
 import { RouterLink } from "vue-router";
 import { activeGuidance } from "../guidance/activeGuidanceState";
 import { insertAtCaret } from "../utils/insertAtCaret";
+const route = useRoute();
+const router = useRouter();
+const guidanceCheckInIdQuery = computed(() => {
+    const raw = route.query.guidanceCheckInId;
+    if (raw == null || Array.isArray(raw)) {
+        return null;
+    }
+    const s = String(raw).trim();
+    if (!/^\d+$/.test(s)) {
+        return null;
+    }
+    const n = Number(s);
+    return Number.isSafeInteger(n) ? n : null;
+});
+function clearCheckInQuery() {
+    void router.replace({ path: "/", query: {} });
+}
 const selectedAudioFile = ref(null);
 const selectedTextFile = ref(null);
 const textContent = ref("");
@@ -153,8 +171,12 @@ async function onSubmit() {
             textFile: selectedTextFile.value,
             textContent: textContent.value,
             noteStyle: noteStyle.value,
-            outputLanguage: outputLanguage.value
+            outputLanguage: outputLanguage.value,
+            guidanceCheckInId: guidanceCheckInIdQuery.value ?? undefined
         });
+        if (guidanceCheckInIdQuery.value != null) {
+            void router.replace({ path: "/", query: {} });
+        }
     }
     catch (error) {
         errorMessage.value = error instanceof Error ? error.message : "Processing failed";
@@ -191,6 +213,7 @@ debugger; /* PartiallyEnd: #3632/scriptSetup.vue */
 const __VLS_ctx = {};
 let __VLS_components;
 let __VLS_directives;
+/** @type {__VLS_StyleScopedClasses['home-checkin-banner']} */ ;
 /** @type {__VLS_StyleScopedClasses['page-home']} */ ;
 /** @type {__VLS_StyleScopedClasses['page-home']} */ ;
 /** @type {__VLS_StyleScopedClasses['page-home']} */ ;
@@ -233,6 +256,19 @@ if (__VLS_ctx.activeGuidance) {
     var __VLS_3;
     __VLS_asFunctionalElement(__VLS_intrinsicElements.span, __VLS_intrinsicElements.span)({
         ...{ class: "cyber-muted home-guidance-finish" },
+    });
+}
+if (__VLS_ctx.guidanceCheckInIdQuery != null) {
+    __VLS_asFunctionalElement(__VLS_intrinsicElements.section, __VLS_intrinsicElements.section)({
+        ...{ class: "cyber-card home-checkin-banner" },
+    });
+    __VLS_asFunctionalElement(__VLS_intrinsicElements.p, __VLS_intrinsicElements.p)({});
+    __VLS_asFunctionalElement(__VLS_intrinsicElements.strong, __VLS_intrinsicElements.strong)({});
+    (__VLS_ctx.guidanceCheckInIdQuery);
+    __VLS_asFunctionalElement(__VLS_intrinsicElements.button, __VLS_intrinsicElements.button)({
+        ...{ onClick: (__VLS_ctx.clearCheckInQuery) },
+        type: "button",
+        ...{ class: "linklike" },
     });
 }
 __VLS_asFunctionalElement(__VLS_intrinsicElements.h1, __VLS_intrinsicElements.h1)({
@@ -446,6 +482,9 @@ if (__VLS_ctx.result) {
 /** @type {__VLS_StyleScopedClasses['cyber-link']} */ ;
 /** @type {__VLS_StyleScopedClasses['cyber-muted']} */ ;
 /** @type {__VLS_StyleScopedClasses['home-guidance-finish']} */ ;
+/** @type {__VLS_StyleScopedClasses['cyber-card']} */ ;
+/** @type {__VLS_StyleScopedClasses['home-checkin-banner']} */ ;
+/** @type {__VLS_StyleScopedClasses['linklike']} */ ;
 /** @type {__VLS_StyleScopedClasses['cyber-display']} */ ;
 /** @type {__VLS_StyleScopedClasses['cyber-title-glitch']} */ ;
 /** @type {__VLS_StyleScopedClasses['cyber-muted']} */ ;
@@ -485,6 +524,8 @@ const __VLS_self = (await import('vue')).defineComponent({
             VideoLinkSection: VideoLinkSection,
             RouterLink: RouterLink,
             activeGuidance: activeGuidance,
+            guidanceCheckInIdQuery: guidanceCheckInIdQuery,
+            clearCheckInQuery: clearCheckInQuery,
             textContent: textContent,
             noteStyle: noteStyle,
             outputLanguage: outputLanguage,

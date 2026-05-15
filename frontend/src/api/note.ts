@@ -26,6 +26,8 @@ interface MixedInput {
   textContent?: string;
   noteStyle?: NoteStyle;
   outputLanguage?: OutputLanguage;
+  /** 导学打卡 ID；与备注/视频链接/转写一并作为 supplemental 传入摘要模型 */
+  guidanceCheckInId?: number;
 }
 
 export async function processMixedInput(input: MixedInput): Promise<NoteResult> {
@@ -41,6 +43,9 @@ export async function processMixedInput(input: MixedInput): Promise<NoteResult> 
   }
   formData.append("noteStyle", input.noteStyle ?? "LEARNING");
   formData.append("outputLanguage", input.outputLanguage ?? "AUTO");
+  if (input.guidanceCheckInId != null && Number.isFinite(input.guidanceCheckInId)) {
+    formData.append("guidanceCheckInId", String(Math.trunc(input.guidanceCheckInId)));
+  }
 
   const response = await apiFetch(`${API_ORIGIN}/api/notes/process-mixed`, {
     method: "POST",

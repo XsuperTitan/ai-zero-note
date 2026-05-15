@@ -12,6 +12,9 @@ export async function processMixedInput(input) {
     }
     formData.append("noteStyle", input.noteStyle ?? "LEARNING");
     formData.append("outputLanguage", input.outputLanguage ?? "AUTO");
+    if (input.guidanceCheckInId != null && Number.isFinite(input.guidanceCheckInId)) {
+        formData.append("guidanceCheckInId", String(Math.trunc(input.guidanceCheckInId)));
+    }
     const response = await apiFetch(`${API_ORIGIN}/api/notes/process-mixed`, {
         method: "POST",
         body: formData

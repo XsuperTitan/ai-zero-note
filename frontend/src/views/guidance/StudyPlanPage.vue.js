@@ -1,6 +1,6 @@
 import { computed, nextTick, onMounted, ref } from "vue";
 import { useRoute, useRouter, RouterLink } from "vue-router";
-import { completeGuidanceSession, enterGuidanceSessionInProgress, generateStudyPlan, getLatestStudyPlan, getStudyPlanBySessionId, updateGuidanceCurrentVideo } from "../../api/guidance";
+import { completeGuidanceSession, createGuidanceCheckIn, enterGuidanceSessionInProgress, generateStudyPlan, getLatestStudyPlan, getStudyPlanBySessionId, supplementGuidanceCheckIn, updateGuidanceCurrentVideo } from "../../api/guidance";
 import { getLoginUser } from "../../api/user";
 const route = useRoute();
 const router = useRouter();
@@ -11,6 +11,12 @@ const plan = ref(null);
 /** When URL has sessionId but plan not generated yet */
 const pendingSessionId = ref(null);
 const generationMode = ref("TEMPLATE");
+const checkInRemark = ref("");
+const checkInVideoUrl = ref("");
+const checkInTranscript = ref("");
+const lastCheckInId = ref(null);
+const checkInLoading = ref(false);
+const checkInMessage = ref("");
 const sessionIdQuery = computed(() => {
     const raw = route.query.sessionId;
     if (raw == null || Array.isArray(raw)) {
@@ -223,6 +229,51 @@ async function onCompleteGuidance() {
         advanceLoading.value = false;
     }
 }
+async function onSubmitCheckIn() {
+    const p = plan.value;
+    if (!p || checkInLoading.value) {
+        return;
+    }
+    checkInLoading.value = true;
+    checkInMessage.value = "";
+    try {
+        const r = await createGuidanceCheckIn(p.sessionId, checkInRemark.value.trim() || undefined);
+        lastCheckInId.value = r.checkInId;
+        checkInMessage.value = `打卡已保存。可补充链接/转写后点「更新补充素材」，再「去首页生成笔记」。`;
+    }
+    catch (e) {
+        checkInMessage.value = e instanceof Error ? e.message : "打卡失败";
+    }
+    finally {
+        checkInLoading.value = false;
+    }
+}
+async function onSupplementCheckIn() {
+    if (lastCheckInId.value == null || checkInLoading.value) {
+        return;
+    }
+    checkInLoading.value = true;
+    checkInMessage.value = "";
+    try {
+        const r = await supplementGuidanceCheckIn(lastCheckInId.value, {
+            videoUrl: checkInVideoUrl.value.trim() || undefined,
+            transcriptText: checkInTranscript.value.trim() || undefined
+        });
+        checkInMessage.value = `补充已更新（打卡 #${r.checkInId}）。`;
+    }
+    catch (e) {
+        checkInMessage.value = e instanceof Error ? e.message : "更新失败";
+    }
+    finally {
+        checkInLoading.value = false;
+    }
+}
+function goNotesWithCheckIn() {
+    if (lastCheckInId.value == null) {
+        return;
+    }
+    void router.push({ path: "/", query: { guidanceCheckInId: String(lastCheckInId.value) } });
+}
 debugger; /* PartiallyEnd: #3632/scriptSetup.vue */
 const __VLS_ctx = {};
 let __VLS_components;
@@ -424,6 +475,75 @@ else {
                 });
             }
         }
+        __VLS_asFunctionalElement(__VLS_intrinsicElements.h2, __VLS_intrinsicElements.h2)({
+            ...{ class: "section-checkin" },
+        });
+        __VLS_asFunctionalElement(__VLS_intrinsicElements.p, __VLS_intrinsicElements.p)({
+            ...{ class: "cyber-muted" },
+        });
+        __VLS_asFunctionalElement(__VLS_intrinsicElements.code, __VLS_intrinsicElements.code)({});
+        __VLS_asFunctionalElement(__VLS_intrinsicElements.label, __VLS_intrinsicElements.label)({
+            ...{ class: "cyber-field-label" },
+        });
+        __VLS_asFunctionalElement(__VLS_intrinsicElements.textarea)({
+            value: (__VLS_ctx.checkInRemark),
+            ...{ class: "cyber-field" },
+            rows: "2",
+            placeholder: "例如：今天看到第 3 节，疑点在 …",
+        });
+        __VLS_asFunctionalElement(__VLS_intrinsicElements.button, __VLS_intrinsicElements.button)({
+            ...{ onClick: (__VLS_ctx.onSubmitCheckIn) },
+            type: "button",
+            ...{ class: "cyber-btn-primary" },
+            disabled: (__VLS_ctx.checkInLoading),
+        });
+        (__VLS_ctx.checkInLoading ? "…" : "提交打卡");
+        if (__VLS_ctx.lastCheckInId != null) {
+            __VLS_asFunctionalElement(__VLS_intrinsicElements.p, __VLS_intrinsicElements.p)({
+                ...{ class: "cyber-muted" },
+            });
+            __VLS_asFunctionalElement(__VLS_intrinsicElements.strong, __VLS_intrinsicElements.strong)({});
+            (__VLS_ctx.lastCheckInId);
+        }
+        if (__VLS_ctx.lastCheckInId != null) {
+            __VLS_asFunctionalElement(__VLS_intrinsicElements.label, __VLS_intrinsicElements.label)({
+                ...{ class: "cyber-field-label" },
+            });
+            __VLS_asFunctionalElement(__VLS_intrinsicElements.input)({
+                ...{ class: "cyber-field" },
+                type: "url",
+                placeholder: "https://...",
+            });
+            (__VLS_ctx.checkInVideoUrl);
+            __VLS_asFunctionalElement(__VLS_intrinsicElements.label, __VLS_intrinsicElements.label)({
+                ...{ class: "cyber-field-label" },
+            });
+            __VLS_asFunctionalElement(__VLS_intrinsicElements.textarea)({
+                value: (__VLS_ctx.checkInTranscript),
+                ...{ class: "cyber-field" },
+                rows: "4",
+            });
+            __VLS_asFunctionalElement(__VLS_intrinsicElements.p, __VLS_intrinsicElements.p)({
+                ...{ class: "checkin-actions" },
+            });
+            __VLS_asFunctionalElement(__VLS_intrinsicElements.button, __VLS_intrinsicElements.button)({
+                ...{ onClick: (__VLS_ctx.onSupplementCheckIn) },
+                type: "button",
+                ...{ class: "cyber-btn-ghost" },
+                disabled: (__VLS_ctx.checkInLoading),
+            });
+            __VLS_asFunctionalElement(__VLS_intrinsicElements.button, __VLS_intrinsicElements.button)({
+                ...{ onClick: (__VLS_ctx.goNotesWithCheckIn) },
+                type: "button",
+                ...{ class: "cyber-btn-ghost" },
+            });
+        }
+        if (__VLS_ctx.checkInMessage) {
+            __VLS_asFunctionalElement(__VLS_intrinsicElements.p, __VLS_intrinsicElements.p)({
+                ...{ class: "cyber-muted" },
+            });
+            (__VLS_ctx.checkInMessage);
+        }
         if (__VLS_ctx.errorMessage) {
             __VLS_asFunctionalElement(__VLS_intrinsicElements.p, __VLS_intrinsicElements.p)({
                 ...{ class: "cyber-error" },
@@ -499,6 +619,20 @@ else {
 /** @type {__VLS_StyleScopedClasses['video-rationale']} */ ;
 /** @type {__VLS_StyleScopedClasses['cyber-link']} */ ;
 /** @type {__VLS_StyleScopedClasses['cyber-muted']} */ ;
+/** @type {__VLS_StyleScopedClasses['section-checkin']} */ ;
+/** @type {__VLS_StyleScopedClasses['cyber-muted']} */ ;
+/** @type {__VLS_StyleScopedClasses['cyber-field-label']} */ ;
+/** @type {__VLS_StyleScopedClasses['cyber-field']} */ ;
+/** @type {__VLS_StyleScopedClasses['cyber-btn-primary']} */ ;
+/** @type {__VLS_StyleScopedClasses['cyber-muted']} */ ;
+/** @type {__VLS_StyleScopedClasses['cyber-field-label']} */ ;
+/** @type {__VLS_StyleScopedClasses['cyber-field']} */ ;
+/** @type {__VLS_StyleScopedClasses['cyber-field-label']} */ ;
+/** @type {__VLS_StyleScopedClasses['cyber-field']} */ ;
+/** @type {__VLS_StyleScopedClasses['checkin-actions']} */ ;
+/** @type {__VLS_StyleScopedClasses['cyber-btn-ghost']} */ ;
+/** @type {__VLS_StyleScopedClasses['cyber-btn-ghost']} */ ;
+/** @type {__VLS_StyleScopedClasses['cyber-muted']} */ ;
 /** @type {__VLS_StyleScopedClasses['cyber-error']} */ ;
 /** @type {__VLS_StyleScopedClasses['cyber-card']} */ ;
 /** @type {__VLS_StyleScopedClasses['cyber-error']} */ ;
@@ -515,6 +649,12 @@ const __VLS_self = (await import('vue')).defineComponent({
             plan: plan,
             pendingSessionId: pendingSessionId,
             generationMode: generationMode,
+            checkInRemark: checkInRemark,
+            checkInVideoUrl: checkInVideoUrl,
+            checkInTranscript: checkInTranscript,
+            lastCheckInId: lastCheckInId,
+            checkInLoading: checkInLoading,
+            checkInMessage: checkInMessage,
             loadPlan: loadPlan,
             onGenerate: onGenerate,
             copyShareLink: copyShareLink,
@@ -523,6 +663,9 @@ const __VLS_self = (await import('vue')).defineComponent({
             hasNextVideo: hasNextVideo,
             onNextVideo: onNextVideo,
             onCompleteGuidance: onCompleteGuidance,
+            onSubmitCheckIn: onSubmitCheckIn,
+            onSupplementCheckIn: onSupplementCheckIn,
+            goNotesWithCheckIn: goNotesWithCheckIn,
         };
     },
 });

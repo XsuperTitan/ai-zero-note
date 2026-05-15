@@ -78,3 +78,30 @@ export async function completeGuidanceSession(sessionId) {
     });
     return parseEnvelope(response);
 }
+export async function createGuidanceCheckIn(sessionId, remark) {
+    const body = { sessionId };
+    if (remark != null && remark.trim().length > 0) {
+        body.remark = remark.trim();
+    }
+    const response = await apiFetch(`${API_ORIGIN}/api/guidance/check-in`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body)
+    });
+    return parseEnvelope(response);
+}
+export async function supplementGuidanceCheckIn(checkInId, payload) {
+    const body = {};
+    if (payload.videoUrl != null && payload.videoUrl.trim().length > 0) {
+        body.videoUrl = payload.videoUrl.trim();
+    }
+    if (payload.transcriptText != null && payload.transcriptText.trim().length > 0) {
+        body.transcriptText = payload.transcriptText.trim();
+    }
+    const response = await apiFetch(`${API_ORIGIN}/api/guidance/check-in/${checkInId}/supplement`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body)
+    });
+    return parseEnvelope(response);
+}

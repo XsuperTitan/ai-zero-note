@@ -18,6 +18,7 @@ import com.aizeronote.service.NotePipelineService;
 import com.aizeronote.service.TranscriptionComparisonService;
 import com.aizeronote.service.TranscriptionService;
 import com.aizeronote.service.UserService;
+import com.aizeronote.service.guidance.GuidanceCheckInService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.springframework.core.io.Resource;
@@ -52,6 +53,7 @@ public class NoteController {
     private final NoteJobRepository noteJobRepository;
     private final ImageNoteJobService imageNoteJobService;
     private final ImageNoteStorageService imageNoteStorageService;
+    private final GuidanceCheckInService guidanceCheckInService;
 
     public NoteController(
             NotePipelineService notePipelineService,
@@ -63,7 +65,8 @@ public class NoteController {
             NoteJobService noteJobService,
             NoteJobRepository noteJobRepository,
             ImageNoteJobService imageNoteJobService,
-            ImageNoteStorageService imageNoteStorageService
+            ImageNoteStorageService imageNoteStorageService,
+            GuidanceCheckInService guidanceCheckInService
     ) {
         this.notePipelineService = notePipelineService;
         this.mixedNotePipelineService = mixedNotePipelineService;
@@ -75,6 +78,7 @@ public class NoteController {
         this.noteJobRepository = noteJobRepository;
         this.imageNoteJobService = imageNoteJobService;
         this.imageNoteStorageService = imageNoteStorageService;
+        this.guidanceCheckInService = guidanceCheckInService;
     }
 
     @PostMapping(path = "/process", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
@@ -92,13 +96,18 @@ public class NoteController {
             @RequestParam(value = "textFile", required = false) MultipartFile textFile,
             @RequestParam(value = "textContent", required = false) String textContent,
             @RequestParam(value = "noteStyle", required = false, defaultValue = "LEARNING") String noteStyle,
-            @RequestParam(value = "outputLanguage", required = false, defaultValue = "AUTO") String outputLanguage
+            @RequestParam(value = "outputLanguage", required = false, defaultValue = "AUTO") String outputLanguage,
+            @RequestParam(value = "guidanceCheckInId", required = false) Long guidanceCheckInId
     ) {
         Long userId = userService.getLoginUser(request).getId();
         NoteStyle style = NoteEnumsParser.parseNoteStyle(noteStyle, NoteStyle.LEARNING);
         OutputLanguage lang = NoteEnumsParser.parseOutputLanguage(outputLanguage, OutputLanguage.AUTO);
-        NoteResult result = mixedNotePipelineService.processMixed(file, textFile, textContent, style, lang);
+        NoteResult result = mixedNotePipelineService.processMixed(
+                userId, file, textFile, textContent, style, lang, guidanceCheckInId);
         noteJobService.tryPersist(userId, result);
+        if (guidanceCheckInId != null) {
+            guidanceCheckInService.markConsumedByNote(userId, guidanceCheckInId, result.noteId());
+        }
         return ResponseEntity.ok(result);
     }
 

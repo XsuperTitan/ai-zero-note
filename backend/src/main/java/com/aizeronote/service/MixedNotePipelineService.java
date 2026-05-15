@@ -5,6 +5,7 @@ import com.aizeronote.model.NoteResult;
 import com.aizeronote.model.NoteStyle;
 import com.aizeronote.model.NoteSummary;
 import com.aizeronote.model.OutputLanguage;
+import com.aizeronote.service.guidance.GuidanceCheckInService;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
@@ -25,31 +26,37 @@ public class MixedNotePipelineService {
     private final TranscriptionService transcriptionService;
     private final SummaryService summaryService;
     private final MarkdownService markdownService;
+    private final GuidanceCheckInService guidanceCheckInService;
 
     public MixedNotePipelineService(
             AppStorageProperties appStorageProperties,
             TranscriptionService transcriptionService,
             SummaryService summaryService,
-            MarkdownService markdownService
+            MarkdownService markdownService,
+            GuidanceCheckInService guidanceCheckInService
     ) {
         this.appStorageProperties = appStorageProperties;
         this.transcriptionService = transcriptionService;
         this.summaryService = summaryService;
         this.markdownService = markdownService;
+        this.guidanceCheckInService = guidanceCheckInService;
     }
 
     public NoteResult processMixed(
+            Long userId,
             MultipartFile audioFile,
             MultipartFile textFile,
             String textContent,
             NoteStyle noteStyle,
-            OutputLanguage outputLanguage
+            OutputLanguage outputLanguage,
+            Long guidanceCheckInId
     ) {
         boolean hasAudio = audioFile != null && !audioFile.isEmpty();
         boolean hasTextFile = textFile != null && !textFile.isEmpty();
         boolean hasTextContent = StringUtils.hasText(textContent);
-        if (!hasAudio && !hasTextFile && !hasTextContent) {
-            throw new IllegalArgumentException("Please provide audio file, text file, or text content.");
+        String checkInBlock = guidanceCheckInService.supplementalBlockForNotePipeline(userId, guidanceCheckInId);
+        if (!hasAudio && !hasTextFile && !hasTextContent && !StringUtils.hasText(checkInBlock)) {
+            throw new IllegalArgumentException("Please provide audio file, text file, text content, or a guidance check-in with material.");
         }
 
         if (hasAudio) {
@@ -60,7 +67,8 @@ public class MixedNotePipelineService {
         }
 
         String transcription = hasAudio ? transcriptionService.transcribeWithDefaultProvider(audioFile) : "";
-        String supplementalText = mergeSupplementalText(textFile, textContent);
+        String userSupplemental = mergeSupplementalText(textFile, textContent);
+        String supplementalText = mergeCheckInWithUserSupplement(checkInBlock, userSupplemental);
 
         NoteSummary summary = summaryService.summarizeWithSupplemental(
                 transcription,
@@ -158,6 +166,16 @@ public class MixedNotePipelineService {
             builder.append(textContent.trim());
         }
         return builder.toString();
+    }
+
+    private static String mergeCheckInWithUserSupplement(String checkInBlock, String userSupplemental) {
+        if (!StringUtils.hasText(checkInBlock)) {
+            return userSupplemental == null ? "" : userSupplemental;
+        }
+        if (!StringUtils.hasText(userSupplemental)) {
+            return checkInBlock;
+        }
+        return checkInBlock + "\n\n---\n\n" + userSupplemental;
     }
 
     private void validateAudioFile(MultipartFile file) {

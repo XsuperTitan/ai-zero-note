@@ -163,3 +163,46 @@ export async function completeGuidanceSession(sessionId: number): Promise<boolea
   });
   return parseEnvelope<boolean>(response);
 }
+
+export interface GuidanceCheckInResponse {
+  checkInId: number;
+  sessionId: number;
+  remark: string | null;
+  videoUrl: string | null;
+  hasTranscriptText: boolean;
+  consumedNoteId: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export async function createGuidanceCheckIn(sessionId: number, remark?: string): Promise<GuidanceCheckInResponse> {
+  const body: { sessionId: number; remark?: string } = { sessionId };
+  if (remark != null && remark.trim().length > 0) {
+    body.remark = remark.trim();
+  }
+  const response = await apiFetch(`${API_ORIGIN}/api/guidance/check-in`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body)
+  });
+  return parseEnvelope<GuidanceCheckInResponse>(response);
+}
+
+export async function supplementGuidanceCheckIn(
+  checkInId: number,
+  payload: { videoUrl?: string; transcriptText?: string }
+): Promise<GuidanceCheckInResponse> {
+  const body: Record<string, string> = {};
+  if (payload.videoUrl != null && payload.videoUrl.trim().length > 0) {
+    body.videoUrl = payload.videoUrl.trim();
+  }
+  if (payload.transcriptText != null && payload.transcriptText.trim().length > 0) {
+    body.transcriptText = payload.transcriptText.trim();
+  }
+  const response = await apiFetch(`${API_ORIGIN}/api/guidance/check-in/${checkInId}/supplement`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body)
+  });
+  return parseEnvelope<GuidanceCheckInResponse>(response);
+}

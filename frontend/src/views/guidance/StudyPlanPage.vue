@@ -3,10 +3,12 @@ import { computed, nextTick, onMounted, ref } from "vue";
 import { useRoute, useRouter, RouterLink } from "vue-router";
 import {
   completeGuidanceSession,
+  createGuidanceCheckIn,
   enterGuidanceSessionInProgress,
   generateStudyPlan,
   getLatestStudyPlan,
   getStudyPlanBySessionId,
+  supplementGuidanceCheckIn,
   updateGuidanceCurrentVideo,
   type PlanGenerationMode,
   type StudyPlanResponse
@@ -23,6 +25,13 @@ const plan = ref<StudyPlanResponse | null>(null);
 /** When URL has sessionId but plan not generated yet */
 const pendingSessionId = ref<number | null>(null);
 const generationMode = ref<PlanGenerationMode>("TEMPLATE");
+
+const checkInRemark = ref("");
+const checkInVideoUrl = ref("");
+const checkInTranscript = ref("");
+const lastCheckInId = ref<number | null>(null);
+const checkInLoading = ref(false);
+const checkInMessage = ref("");
 
 const sessionIdQuery = computed(() => {
   const raw = route.query.sessionId;
@@ -237,6 +246,50 @@ async function onCompleteGuidance() {
     advanceLoading.value = false;
   }
 }
+
+async function onSubmitCheckIn() {
+  const p = plan.value;
+  if (!p || checkInLoading.value) {
+    return;
+  }
+  checkInLoading.value = true;
+  checkInMessage.value = "";
+  try {
+    const r = await createGuidanceCheckIn(p.sessionId, checkInRemark.value.trim() || undefined);
+    lastCheckInId.value = r.checkInId;
+    checkInMessage.value = `打卡已保存。可补充链接/转写后点「更新补充素材」，再「去首页生成笔记」。`;
+  } catch (e) {
+    checkInMessage.value = e instanceof Error ? e.message : "打卡失败";
+  } finally {
+    checkInLoading.value = false;
+  }
+}
+
+async function onSupplementCheckIn() {
+  if (lastCheckInId.value == null || checkInLoading.value) {
+    return;
+  }
+  checkInLoading.value = true;
+  checkInMessage.value = "";
+  try {
+    const r = await supplementGuidanceCheckIn(lastCheckInId.value, {
+      videoUrl: checkInVideoUrl.value.trim() || undefined,
+      transcriptText: checkInTranscript.value.trim() || undefined
+    });
+    checkInMessage.value = `补充已更新（打卡 #${r.checkInId}）。`;
+  } catch (e) {
+    checkInMessage.value = e instanceof Error ? e.message : "更新失败";
+  } finally {
+    checkInLoading.value = false;
+  }
+}
+
+function goNotesWithCheckIn() {
+  if (lastCheckInId.value == null) {
+    return;
+  }
+  void router.push({ path: "/", query: { guidanceCheckInId: String(lastCheckInId.value) } });
+}
 </script>
 
 <template>
@@ -344,6 +397,36 @@ async function onCompleteGuidance() {
             <p v-else class="cyber-muted">无直链（请按标题在平台内搜索）</p>
           </li>
         </ul>
+
+        <h2 class="section-checkin">学后打卡 · 素材回流 ZERO NOTE</h2>
+        <p class="cyber-muted">
+          学完可打卡；补充内容会随首页「生成笔记」请求合并进 AI
+          补充文本（字段 <code>guidanceCheckInId</code>）。仅打卡无补充时，请至少填写备注/链接/转写之一再生成；也可与 MP3、正文同时提交。
+        </p>
+        <label class="cyber-field-label">打卡备注（可选）</label>
+        <textarea
+          v-model="checkInRemark"
+          class="cyber-field"
+          rows="2"
+          placeholder="例如：今天看到第 3 节，疑点在 …"
+        />
+        <button type="button" class="cyber-btn-primary" :disabled="checkInLoading" @click="onSubmitCheckIn">
+          {{ checkInLoading ? "…" : "提交打卡" }}
+        </button>
+        <p v-if="lastCheckInId != null" class="cyber-muted">当前打卡 ID：<strong>{{ lastCheckInId }}</strong></p>
+        <template v-if="lastCheckInId != null">
+          <label class="cyber-field-label">视频链接（可选）</label>
+          <input v-model="checkInVideoUrl" class="cyber-field" type="url" placeholder="https://..." />
+          <label class="cyber-field-label">转写 / 摘录（可选）</label>
+          <textarea v-model="checkInTranscript" class="cyber-field" rows="4" />
+          <p class="checkin-actions">
+            <button type="button" class="cyber-btn-ghost" :disabled="checkInLoading" @click="onSupplementCheckIn">
+              更新补充素材
+            </button>
+            <button type="button" class="cyber-btn-ghost" @click="goNotesWithCheckIn">去首页生成笔记</button>
+          </p>
+        </template>
+        <p v-if="checkInMessage" class="cyber-muted">{{ checkInMessage }}</p>
 
         <p v-if="errorMessage" class="cyber-error">{{ errorMessage }}</p>
       </section>
@@ -468,5 +551,18 @@ async function onCompleteGuidance() {
 .video-rationale {
   margin: 0.4rem 0 0.35rem;
   font-size: 0.92rem;
+}
+
+.section-checkin {
+  margin: 1.5rem 0 0.5rem;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.checkin-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
 }
 </style>

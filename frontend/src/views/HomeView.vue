@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onUnmounted, ref } from "vue";
+import { useRoute, useRouter } from "vue-router";
 import { API_ORIGIN } from "../api/client";
 import { enqueueImageNoteJob, getImageNoteJob } from "../api/imageNote";
 import { processMixedInput, type NoteResult, type NoteStyle, type OutputLanguage } from "../api/note";
@@ -8,6 +9,26 @@ import VideoLinkSection from "../components/VideoLinkSection.vue";
 import { RouterLink } from "vue-router";
 import { activeGuidance } from "../guidance/activeGuidanceState";
 import { insertAtCaret } from "../utils/insertAtCaret";
+
+const route = useRoute();
+const router = useRouter();
+
+const guidanceCheckInIdQuery = computed(() => {
+  const raw = route.query.guidanceCheckInId;
+  if (raw == null || Array.isArray(raw)) {
+    return null;
+  }
+  const s = String(raw).trim();
+  if (!/^\d+$/.test(s)) {
+    return null;
+  }
+  const n = Number(s);
+  return Number.isSafeInteger(n) ? n : null;
+});
+
+function clearCheckInQuery() {
+  void router.replace({ path: "/", query: {} });
+}
 
 const selectedAudioFile = ref<File | null>(null);
 const selectedTextFile = ref<File | null>(null);
@@ -175,8 +196,12 @@ async function onSubmit() {
       textFile: selectedTextFile.value,
       textContent: textContent.value,
       noteStyle: noteStyle.value,
-      outputLanguage: outputLanguage.value
+      outputLanguage: outputLanguage.value,
+      guidanceCheckInId: guidanceCheckInIdQuery.value ?? undefined
     });
+    if (guidanceCheckInIdQuery.value != null) {
+      void router.replace({ path: "/", query: {} });
+    }
   } catch (error) {
     errorMessage.value = error instanceof Error ? error.message : "Processing failed";
   } finally {
@@ -228,6 +253,13 @@ function onInsertVideoTextContent(text: string) {
         <span class="cyber-muted home-guidance-finish">
           完成本条导学：在方案页工具栏点「标记本阶段完成」（完成后此处与顶栏提示会消失）。
         </span>
+      </p>
+    </section>
+
+    <section v-if="guidanceCheckInIdQuery != null" class="cyber-card home-checkin-banner">
+      <p>
+        已关联 <strong>导学打卡 #{{ guidanceCheckInIdQuery }}</strong>：生成笔记时会将打卡中的备注 / 视频链接 / 转写并入 AI 补充文本。
+        <button type="button" class="linklike" @click="clearCheckInQuery">取消关联</button>
       </p>
     </section>
 
@@ -355,6 +387,14 @@ function onInsertVideoTextContent(text: string) {
 
 .home-guidance-finish {
   font-size: 0.88rem;
+}
+
+.home-checkin-banner {
+  margin-bottom: 1rem;
+}
+
+.home-checkin-banner .linklike {
+  margin-left: 0.35rem;
 }
 
 .page-home h1 {
