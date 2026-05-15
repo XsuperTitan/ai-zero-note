@@ -38,3 +38,19 @@ export async function getLearningProfileBySessionId(sessionId) {
     const response = await apiFetch(`${API_ORIGIN}/api/guidance/profile/${sessionId}`);
     return parseEnvelope(response);
 }
+export async function generateStudyPlan(sessionId, mode = "TEMPLATE") {
+    const response = await apiFetch(`${API_ORIGIN}/api/guidance/plan/generate`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sessionId, mode })
+    });
+    return parseEnvelope(response);
+}
+export async function getLatestStudyPlan() {
+    const response = await apiFetch(`${API_ORIGIN}/api/guidance/plan/latest`);
+    return parseEnvelope(response);
+}
+export async function getStudyPlanBySessionId(sessionId) {
+    const response = await apiFetch(`${API_ORIGIN}/api/guidance/plan/session/${sessionId}`);
+    return parseEnvelope(response);
+}

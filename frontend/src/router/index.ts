@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from "vue-router";
 import HomeView from "../views/HomeView.vue";
 import LearningProfilePage from "../views/guidance/LearningProfilePage.vue";
+import StudyPlanPage from "../views/guidance/StudyPlanPage.vue";
 import UserLoginPage from "../views/user/UserLoginPage.vue";
 import UserRegisterPage from "../views/user/UserRegisterPage.vue";
 
@@ -9,6 +10,7 @@ export const router = createRouter({
   routes: [
     { path: "/", name: "home", component: HomeView },
     { path: "/guidance/profile", name: "guidance-profile", component: LearningProfilePage },
+    { path: "/guidance/plan", name: "guidance-plan", component: StudyPlanPage },
     { path: "/login", redirect: "/user/login" },
     { path: "/user/login", name: "login", component: UserLoginPage },
     { path: "/user/register", name: "register", component: UserRegisterPage }

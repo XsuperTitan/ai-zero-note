@@ -24,6 +24,7 @@ async function onLogout() {
     <header class="cyber-nav">
       <RouterLink to="/">Notes</RouterLink>
       <RouterLink to="/guidance/profile">沉浸导学</RouterLink>
+      <RouterLink to="/guidance/plan">学习方案</RouterLink>
       <span class="spacer" />
       <template v-if="'id' in loginUser && loginUser.id != null">
         <span class="who">{{ loginUser.userName }} ({{ loginUser.userAccount }})</span>

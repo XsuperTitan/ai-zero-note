@@ -75,3 +75,52 @@ export async function getLearningProfileBySessionId(sessionId: number): Promise<
   const response = await apiFetch(`${API_ORIGIN}/api/guidance/profile/${sessionId}`);
   return parseEnvelope<GuidanceProfileResponse>(response);
 }
+
+export type PlanGenerationMode = "TEMPLATE" | "LLM";
+
+export type VideoLinkKind = string;
+
+export interface StudyPlanVideoDto {
+  id: string;
+  title: string;
+  platform: string;
+  url: string;
+  rationale: string;
+  sortOrder: number;
+  linkKind: VideoLinkKind;
+}
+
+export interface StudyPlanResponse {
+  sessionId: number;
+  generationSource: string;
+  outlineMarkdown: string;
+  suggestions: string[];
+  priorities: string[];
+  videos: StudyPlanVideoDto[];
+  /** Id of the video the learner should watch first (`current_video_id` equiv). */
+  currentVideoId: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export async function generateStudyPlan(
+  sessionId: number,
+  mode: PlanGenerationMode = "TEMPLATE"
+): Promise<StudyPlanResponse> {
+  const response = await apiFetch(`${API_ORIGIN}/api/guidance/plan/generate`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ sessionId, mode })
+  });
+  return parseEnvelope<StudyPlanResponse>(response);
+}
+
+export async function getLatestStudyPlan(): Promise<StudyPlanResponse> {
+  const response = await apiFetch(`${API_ORIGIN}/api/guidance/plan/latest`);
+  return parseEnvelope<StudyPlanResponse>(response);
+}
+
+export async function getStudyPlanBySessionId(sessionId: number): Promise<StudyPlanResponse> {
+  const response = await apiFetch(`${API_ORIGIN}/api/guidance/plan/session/${sessionId}`);
+  return parseEnvelope<StudyPlanResponse>(response);
+}

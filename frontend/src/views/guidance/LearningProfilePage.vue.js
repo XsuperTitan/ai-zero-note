@@ -1,6 +1,6 @@
 import { onMounted, ref } from "vue";
-import { useRouter } from "vue-router";
-import { getLatestLearningProfile, submitLearningProfile } from "../../api/guidance";
+import { RouterLink, useRouter } from "vue-router";
+import { generateStudyPlan, getLatestLearningProfile, submitLearningProfile } from "../../api/guidance";
 import { getLoginUser } from "../../api/user";
 const router = useRouter();
 const tutorPersona = ref("SILVER_WOLF");
@@ -12,6 +12,7 @@ const studyRhythm = ref("");
 const contentPreference = ref("MIXED");
 const extraNotes = ref("");
 const loading = ref(false);
+const planLoading = ref(false);
 const bootLoading = ref(true);
 const errorMessage = ref("");
 const latest = ref(null);
@@ -61,6 +62,23 @@ async function onSubmit() {
     }
     finally {
         loading.value = false;
+    }
+}
+async function generatePlanAndOpen() {
+    if (!latest.value || planLoading.value) {
+        return;
+    }
+    planLoading.value = true;
+    errorMessage.value = "";
+    try {
+        await generateStudyPlan(latest.value.sessionId, "TEMPLATE");
+        await router.push({ path: "/guidance/plan", query: { sessionId: String(latest.value.sessionId) } });
+    }
+    catch (e) {
+        errorMessage.value = e instanceof Error ? e.message : "生成方案失败";
+    }
+    finally {
+        planLoading.value = false;
     }
 }
 debugger; /* PartiallyEnd: #3632/scriptSetup.vue */
@@ -217,6 +235,29 @@ else {
             ...{ class: "cyber-pre constraints-pre" },
         });
         (__VLS_ctx.latest.llmPromptConstraints);
+        __VLS_asFunctionalElement(__VLS_intrinsicElements.p, __VLS_intrinsicElements.p)({
+            ...{ class: "plan-actions" },
+        });
+        const __VLS_0 = {}.RouterLink;
+        /** @type {[typeof __VLS_components.RouterLink, typeof __VLS_components.RouterLink, ]} */ ;
+        // @ts-ignore
+        const __VLS_1 = __VLS_asFunctionalComponent(__VLS_0, new __VLS_0({
+            ...{ class: "cyber-link" },
+            to: ({ path: '/guidance/plan', query: { sessionId: String(__VLS_ctx.latest.sessionId) } }),
+        }));
+        const __VLS_2 = __VLS_1({
+            ...{ class: "cyber-link" },
+            to: ({ path: '/guidance/plan', query: { sessionId: String(__VLS_ctx.latest.sessionId) } }),
+        }, ...__VLS_functionalComponentArgsRest(__VLS_1));
+        __VLS_3.slots.default;
+        var __VLS_3;
+        __VLS_asFunctionalElement(__VLS_intrinsicElements.button, __VLS_intrinsicElements.button)({
+            ...{ onClick: (__VLS_ctx.generatePlanAndOpen) },
+            type: "button",
+            ...{ class: "cyber-btn-primary plan-btn" },
+            disabled: (__VLS_ctx.planLoading),
+        });
+        (__VLS_ctx.planLoading ? "生成中…" : "生成并打开方案（模板）");
     }
 }
 /** @type {__VLS_StyleScopedClasses['page-guidance']} */ ;
@@ -251,10 +292,15 @@ else {
 /** @type {__VLS_StyleScopedClasses['section-mini-title']} */ ;
 /** @type {__VLS_StyleScopedClasses['cyber-pre']} */ ;
 /** @type {__VLS_StyleScopedClasses['constraints-pre']} */ ;
+/** @type {__VLS_StyleScopedClasses['plan-actions']} */ ;
+/** @type {__VLS_StyleScopedClasses['cyber-link']} */ ;
+/** @type {__VLS_StyleScopedClasses['cyber-btn-primary']} */ ;
+/** @type {__VLS_StyleScopedClasses['plan-btn']} */ ;
 var __VLS_dollars;
 const __VLS_self = (await import('vue')).defineComponent({
     setup() {
         return {
+            RouterLink: RouterLink,
             tutorPersona: tutorPersona,
             subjectOrTopic: subjectOrTopic,
             urgency: urgency,
@@ -264,10 +310,12 @@ const __VLS_self = (await import('vue')).defineComponent({
             contentPreference: contentPreference,
             extraNotes: extraNotes,
             loading: loading,
+            planLoading: planLoading,
             bootLoading: bootLoading,
             errorMessage: errorMessage,
             latest: latest,
             onSubmit: onSubmit,
+            generatePlanAndOpen: generatePlanAndOpen,
         };
     },
 });

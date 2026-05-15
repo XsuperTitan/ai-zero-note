@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { onMounted, ref } from "vue";
-import { useRouter } from "vue-router";
+import { RouterLink, useRouter } from "vue-router";
 import {
+  generateStudyPlan,
   getLatestLearningProfile,
   submitLearningProfile,
   type ContentPreference,
@@ -23,6 +24,7 @@ const contentPreference = ref<ContentPreference>("MIXED");
 const extraNotes = ref("");
 
 const loading = ref(false);
+const planLoading = ref(false);
 const bootLoading = ref(true);
 const errorMessage = ref("");
 const latest = ref<GuidanceProfileResponse | null>(null);
@@ -70,6 +72,22 @@ async function onSubmit() {
     errorMessage.value = e instanceof Error ? e.message : "提交失败";
   } finally {
     loading.value = false;
+  }
+}
+
+async function generatePlanAndOpen() {
+  if (!latest.value || planLoading.value) {
+    return;
+  }
+  planLoading.value = true;
+  errorMessage.value = "";
+  try {
+    await generateStudyPlan(latest.value.sessionId, "TEMPLATE");
+    await router.push({ path: "/guidance/plan", query: { sessionId: String(latest.value.sessionId) } });
+  } catch (e) {
+    errorMessage.value = e instanceof Error ? e.message : "生成方案失败";
+  } finally {
+    planLoading.value = false;
   }
 }
 </script>
@@ -143,6 +161,16 @@ async function onSubmit() {
 
         <h3 class="section-mini-title">LLM 约束（供后续导学 / 笔记管线引用）</h3>
         <pre class="cyber-pre constraints-pre">{{ latest.llmPromptConstraints }}</pre>
+
+        <p class="plan-actions">
+          <RouterLink
+            class="cyber-link"
+            :to="{ path: '/guidance/plan', query: { sessionId: String(latest.sessionId) } }"
+          >查看学习方案</RouterLink>
+          <button type="button" class="cyber-btn-primary plan-btn" :disabled="planLoading" @click="generatePlanAndOpen">
+            {{ planLoading ? "生成中…" : "生成并打开方案（模板）" }}
+          </button>
+        </p>
       </section>
     </template>
   </main>
@@ -180,5 +208,17 @@ async function onSubmit() {
   word-break: break-word;
   max-height: 320px;
   overflow: auto;
+}
+
+.plan-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem 1rem;
+  margin-top: 1rem;
+}
+
+.plan-btn {
+  margin: 0;
 }
 </style>
