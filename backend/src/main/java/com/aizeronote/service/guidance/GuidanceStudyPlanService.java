@@ -85,8 +85,9 @@ public class GuidanceStudyPlanService {
         StudyPlanPayload sanitized = sanitizeAndNormalize(payload);
         GuidanceStudyPlan saved = persistPlan(session, sanitized, source);
         session.setStatus(GuidanceSessionStatus.PLAN_READY);
+        session.setProgressVideoId(sanitized.currentVideoId());
         guidanceSessionRepository.save(session);
-        return toResponse(session.getId(), sanitized, source, saved);
+        return toResponse(session, sanitized, source, saved);
     }
 
     @Transactional(readOnly = true)
@@ -98,7 +99,7 @@ public class GuidanceStudyPlanService {
                 .findBySession_Id(session.getId())
                 .orElseThrow(() -> new BusinessException(ErrorCode.OPERATION_ERROR, "该会话暂无学习方案，请先生成"));
         StudyPlanPayload payload = readPlanPayload(plan.getPlanJson());
-        return toResponse(session.getId(), payload, plan.getGenerationSource(), plan);
+        return toResponse(session, payload, plan.getGenerationSource(), plan);
     }
 
     @Transactional(readOnly = true)
@@ -111,7 +112,7 @@ public class GuidanceStudyPlanService {
             throw new BusinessException(ErrorCode.NO_AUTH_ERROR, "导学记录不存在或无权访问");
         }
         StudyPlanPayload payload = readPlanPayload(plan.getPlanJson());
-        return toResponse(session.getId(), payload, plan.getGenerationSource(), plan);
+        return toResponse(session, payload, plan.getGenerationSource(), plan);
     }
 
     private LearningQuestionnaireSubmitRequest readQuestionnaire(GuidanceSession session) {
@@ -182,12 +183,28 @@ public class GuidanceStudyPlanService {
         );
     }
 
+    public static String resolveEffectiveCurrentVideoId(GuidanceSession session, StudyPlanPayload payload) {
+        String pinned = session.getProgressVideoId();
+        Set<String> ids = new HashSet<>();
+        for (StudyPlanVideoPayload v : payload.videos()) {
+            ids.add(v.id());
+        }
+        if (StringUtils.hasText(pinned) && ids.contains(pinned)) {
+            return pinned;
+        }
+        if (StringUtils.hasText(payload.currentVideoId()) && ids.contains(payload.currentVideoId())) {
+            return payload.currentVideoId();
+        }
+        return payload.videos().isEmpty() ? "" : payload.videos().get(0).id();
+    }
+
     private StudyPlanResponse toResponse(
-            long sessionId,
+            GuidanceSession session,
             StudyPlanPayload payload,
             String generationSource,
             GuidanceStudyPlan entity
     ) {
+        String effectiveCurrent = resolveEffectiveCurrentVideoId(session, payload);
         List<StudyPlanVideoDto> videoDtos = payload.videos().stream()
                 .map(v -> new StudyPlanVideoDto(
                         v.id(),
@@ -200,15 +217,16 @@ public class GuidanceStudyPlanService {
                 ))
                 .toList();
         return new StudyPlanResponse(
-                sessionId,
+                session.getId(),
                 generationSource,
                 payload.outlineMarkdown(),
                 payload.suggestions(),
                 payload.priorities(),
                 videoDtos,
-                payload.currentVideoId(),
+                effectiveCurrent,
                 entity.getCreatedAt(),
-                entity.getUpdatedAt()
+                entity.getUpdatedAt(),
+                session.getStatus()
         );
     }
 }

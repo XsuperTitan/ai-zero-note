@@ -1,10 +1,23 @@
-import { RouterLink, RouterView, useRouter } from "vue-router";
+import { RouterLink, RouterView, useRoute, useRouter } from "vue-router";
+import { onMounted, watch } from "vue";
 import { storeToRefs } from "pinia";
+import { activeGuidance, refreshActiveGuidance } from "./guidance/activeGuidanceState";
 import { logout as logoutApi } from "./api/user";
 import { useLoginUserStore } from "./stores/loginUser";
 const router = useRouter();
+const route = useRoute();
 const loginUserStore = useLoginUserStore();
 const { loginUser } = storeToRefs(loginUserStore);
+onMounted(async () => {
+    await loginUserStore.fetchLoginUser();
+    await refreshActiveGuidance(loginUser.value);
+});
+watch(() => ("id" in loginUser.value ? loginUser.value.id : null), () => {
+    void refreshActiveGuidance(loginUser.value);
+});
+watch(() => route.fullPath, () => {
+    void refreshActiveGuidance(loginUser.value);
+});
 async function onLogout() {
     try {
         await logoutApi();
@@ -13,12 +26,15 @@ async function onLogout() {
         /* ignore */
     }
     loginUserStore.clearLoginUser();
+    activeGuidance.value = null;
     await router.replace("/user/login");
 }
 debugger; /* PartiallyEnd: #3632/scriptSetup.vue */
 const __VLS_ctx = {};
 let __VLS_components;
 let __VLS_directives;
+// CSS variable injection 
+// CSS variable injection end 
 __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({
     ...{ class: "app-shell" },
 });
@@ -86,19 +102,54 @@ else {
     __VLS_15.slots.default;
     var __VLS_15;
 }
+if (__VLS_ctx.activeGuidance) {
+    __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({
+        ...{ class: "guidance-banner" },
+    });
+    __VLS_asFunctionalElement(__VLS_intrinsicElements.span, __VLS_intrinsicElements.span)({
+        ...{ class: "guidance-banner__text" },
+    });
+    (__VLS_ctx.activeGuidance.subjectOrTopic);
+    (__VLS_ctx.activeGuidance.currentVideoTitle || __VLS_ctx.activeGuidance.currentVideoId);
+    __VLS_asFunctionalElement(__VLS_intrinsicElements.span, __VLS_intrinsicElements.span)({
+        ...{ class: "guidance-banner__meta" },
+    });
+    (__VLS_ctx.activeGuidance.status);
+    const __VLS_16 = {}.RouterLink;
+    /** @type {[typeof __VLS_components.RouterLink, typeof __VLS_components.RouterLink, ]} */ ;
+    // @ts-ignore
+    const __VLS_17 = __VLS_asFunctionalComponent(__VLS_16, new __VLS_16({
+        ...{ class: "guidance-banner__link" },
+        to: (__VLS_ctx.activeGuidance.studyPlanPath),
+    }));
+    const __VLS_18 = __VLS_17({
+        ...{ class: "guidance-banner__link" },
+        to: (__VLS_ctx.activeGuidance.studyPlanPath),
+    }, ...__VLS_functionalComponentArgsRest(__VLS_17));
+    __VLS_19.slots.default;
+    var __VLS_19;
+    __VLS_asFunctionalElement(__VLS_intrinsicElements.span, __VLS_intrinsicElements.span)({
+        ...{ class: "guidance-banner__hint" },
+    });
+}
 __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({
     ...{ class: "app-shell__main" },
 });
-const __VLS_16 = {}.RouterView;
+const __VLS_20 = {}.RouterView;
 /** @type {[typeof __VLS_components.RouterView, ]} */ ;
 // @ts-ignore
-const __VLS_17 = __VLS_asFunctionalComponent(__VLS_16, new __VLS_16({}));
-const __VLS_18 = __VLS_17({}, ...__VLS_functionalComponentArgsRest(__VLS_17));
+const __VLS_21 = __VLS_asFunctionalComponent(__VLS_20, new __VLS_20({}));
+const __VLS_22 = __VLS_21({}, ...__VLS_functionalComponentArgsRest(__VLS_21));
 /** @type {__VLS_StyleScopedClasses['app-shell']} */ ;
 /** @type {__VLS_StyleScopedClasses['cyber-nav']} */ ;
 /** @type {__VLS_StyleScopedClasses['spacer']} */ ;
 /** @type {__VLS_StyleScopedClasses['who']} */ ;
 /** @type {__VLS_StyleScopedClasses['linklike']} */ ;
+/** @type {__VLS_StyleScopedClasses['guidance-banner']} */ ;
+/** @type {__VLS_StyleScopedClasses['guidance-banner__text']} */ ;
+/** @type {__VLS_StyleScopedClasses['guidance-banner__meta']} */ ;
+/** @type {__VLS_StyleScopedClasses['guidance-banner__link']} */ ;
+/** @type {__VLS_StyleScopedClasses['guidance-banner__hint']} */ ;
 /** @type {__VLS_StyleScopedClasses['app-shell__main']} */ ;
 var __VLS_dollars;
 const __VLS_self = (await import('vue')).defineComponent({
@@ -106,6 +157,7 @@ const __VLS_self = (await import('vue')).defineComponent({
         return {
             RouterLink: RouterLink,
             RouterView: RouterView,
+            activeGuidance: activeGuidance,
             loginUser: loginUser,
             onLogout: onLogout,
         };

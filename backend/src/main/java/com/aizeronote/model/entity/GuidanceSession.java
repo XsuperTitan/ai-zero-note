@@ -26,6 +26,10 @@ public class GuidanceSession {
     @Column(name = "status", nullable = false, length = 32)
     private String status;
 
+    /** User-selected current video id (overrides plan JSON defaults when valid). */
+    @Column(name = "progress_video_id", length = 64)
+    private String progressVideoId;
+
     @Column(name = "questionnaire_json", nullable = false, columnDefinition = "MEDIUMTEXT")
     private String questionnaireJson;
 
@@ -71,6 +75,14 @@ public class GuidanceSession {
 
     public void setStatus(String status) {
         this.status = status;
+    }
+
+    public String getProgressVideoId() {
+        return progressVideoId;
+    }
+
+    public void setProgressVideoId(String progressVideoId) {
+        this.progressVideoId = progressVideoId;
     }
 
     public String getQuestionnaireJson() {

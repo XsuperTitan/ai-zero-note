@@ -5,6 +5,8 @@ import { enqueueImageNoteJob, getImageNoteJob } from "../api/imageNote";
 import { processMixedInput, type NoteResult, type NoteStyle, type OutputLanguage } from "../api/note";
 import MindMapMermaid from "../components/MindMapMermaid.vue";
 import VideoLinkSection from "../components/VideoLinkSection.vue";
+import { RouterLink } from "vue-router";
+import { activeGuidance } from "../guidance/activeGuidanceState";
 import { insertAtCaret } from "../utils/insertAtCaret";
 
 const selectedAudioFile = ref<File | null>(null);
@@ -212,6 +214,23 @@ function onInsertVideoTextContent(text: string) {
 
 <template>
   <main class="page-home">
+    <section v-if="activeGuidance" class="cyber-card home-guidance-resume">
+      <h2 class="home-guidance-heading">沉浸导学 · 进行中</h2>
+      <p>
+        <strong>{{ activeGuidance.subjectOrTopic }}</strong>
+        <span class="cyber-muted">
+          — 当前：{{ activeGuidance.currentVideoTitle || activeGuidance.currentVideoId }}
+          （状态 {{ activeGuidance.status }}）
+        </span>
+      </p>
+      <p class="home-guidance-actions">
+        <RouterLink class="cyber-link" :to="activeGuidance.studyPlanPath">打开学习方案 / 当前视频</RouterLink>
+        <span class="cyber-muted home-guidance-finish">
+          完成本条导学：在方案页工具栏点「标记本阶段完成」（完成后此处与顶栏提示会消失）。
+        </span>
+      </p>
+    </section>
+
     <h1 class="cyber-display cyber-title-glitch">AI Zero Notes</h1>
     <p class="cyber-muted page-lead">
       Upload MP3 and/or text content to generate Markdown notes — pick a note style before generating.
@@ -315,6 +334,27 @@ function onInsertVideoTextContent(text: string) {
   margin: 0 auto;
   max-width: 900px;
   padding: 2rem 1rem 3rem;
+}
+
+.home-guidance-resume {
+  margin-bottom: 1.25rem;
+}
+
+.home-guidance-heading {
+  margin: 0 0 0.5rem;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.home-guidance-actions {
+  margin: 0.5rem 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.home-guidance-finish {
+  font-size: 0.88rem;
 }
 
 .page-home h1 {

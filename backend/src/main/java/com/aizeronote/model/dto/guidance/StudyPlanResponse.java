@@ -12,6 +12,7 @@ public record StudyPlanResponse(
         List<StudyPlanVideoDto> videos,
         String currentVideoId,
         Instant createdAt,
-        Instant updatedAt
+        Instant updatedAt,
+        String sessionStatus
 ) {
 }

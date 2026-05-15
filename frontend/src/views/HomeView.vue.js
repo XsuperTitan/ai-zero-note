@@ -4,6 +4,8 @@ import { enqueueImageNoteJob, getImageNoteJob } from "../api/imageNote";
 import { processMixedInput } from "../api/note";
 import MindMapMermaid from "../components/MindMapMermaid.vue";
 import VideoLinkSection from "../components/VideoLinkSection.vue";
+import { RouterLink } from "vue-router";
+import { activeGuidance } from "../guidance/activeGuidanceState";
 import { insertAtCaret } from "../utils/insertAtCaret";
 const selectedAudioFile = ref(null);
 const selectedTextFile = ref(null);
@@ -198,6 +200,41 @@ let __VLS_directives;
 __VLS_asFunctionalElement(__VLS_intrinsicElements.main, __VLS_intrinsicElements.main)({
     ...{ class: "page-home" },
 });
+if (__VLS_ctx.activeGuidance) {
+    __VLS_asFunctionalElement(__VLS_intrinsicElements.section, __VLS_intrinsicElements.section)({
+        ...{ class: "cyber-card home-guidance-resume" },
+    });
+    __VLS_asFunctionalElement(__VLS_intrinsicElements.h2, __VLS_intrinsicElements.h2)({
+        ...{ class: "home-guidance-heading" },
+    });
+    __VLS_asFunctionalElement(__VLS_intrinsicElements.p, __VLS_intrinsicElements.p)({});
+    __VLS_asFunctionalElement(__VLS_intrinsicElements.strong, __VLS_intrinsicElements.strong)({});
+    (__VLS_ctx.activeGuidance.subjectOrTopic);
+    __VLS_asFunctionalElement(__VLS_intrinsicElements.span, __VLS_intrinsicElements.span)({
+        ...{ class: "cyber-muted" },
+    });
+    (__VLS_ctx.activeGuidance.currentVideoTitle || __VLS_ctx.activeGuidance.currentVideoId);
+    (__VLS_ctx.activeGuidance.status);
+    __VLS_asFunctionalElement(__VLS_intrinsicElements.p, __VLS_intrinsicElements.p)({
+        ...{ class: "home-guidance-actions" },
+    });
+    const __VLS_0 = {}.RouterLink;
+    /** @type {[typeof __VLS_components.RouterLink, typeof __VLS_components.RouterLink, ]} */ ;
+    // @ts-ignore
+    const __VLS_1 = __VLS_asFunctionalComponent(__VLS_0, new __VLS_0({
+        ...{ class: "cyber-link" },
+        to: (__VLS_ctx.activeGuidance.studyPlanPath),
+    }));
+    const __VLS_2 = __VLS_1({
+        ...{ class: "cyber-link" },
+        to: (__VLS_ctx.activeGuidance.studyPlanPath),
+    }, ...__VLS_functionalComponentArgsRest(__VLS_1));
+    __VLS_3.slots.default;
+    var __VLS_3;
+    __VLS_asFunctionalElement(__VLS_intrinsicElements.span, __VLS_intrinsicElements.span)({
+        ...{ class: "cyber-muted home-guidance-finish" },
+    });
+}
 __VLS_asFunctionalElement(__VLS_intrinsicElements.h1, __VLS_intrinsicElements.h1)({
     ...{ class: "cyber-display cyber-title-glitch" },
 });
@@ -275,24 +312,24 @@ if (__VLS_ctx.showLanguageSelect) {
 }
 /** @type {[typeof VideoLinkSection, ]} */ ;
 // @ts-ignore
-const __VLS_0 = __VLS_asFunctionalComponent(VideoLinkSection, new VideoLinkSection({
+const __VLS_4 = __VLS_asFunctionalComponent(VideoLinkSection, new VideoLinkSection({
     ...{ 'onInsertMarkdown': {} },
     ...{ 'onInsertTextContent': {} },
 }));
-const __VLS_1 = __VLS_0({
+const __VLS_5 = __VLS_4({
     ...{ 'onInsertMarkdown': {} },
     ...{ 'onInsertTextContent': {} },
-}, ...__VLS_functionalComponentArgsRest(__VLS_0));
-let __VLS_3;
-let __VLS_4;
-let __VLS_5;
-const __VLS_6 = {
+}, ...__VLS_functionalComponentArgsRest(__VLS_4));
+let __VLS_7;
+let __VLS_8;
+let __VLS_9;
+const __VLS_10 = {
     onInsertMarkdown: (__VLS_ctx.onInsertVideoMarkdown)
 };
-const __VLS_7 = {
+const __VLS_11 = {
     onInsertTextContent: (__VLS_ctx.onInsertVideoTextContent)
 };
-var __VLS_2;
+var __VLS_6;
 __VLS_asFunctionalElement(__VLS_intrinsicElements.button, __VLS_intrinsicElements.button)({
     ...{ onClick: (__VLS_ctx.onSubmit) },
     type: "button",
@@ -318,12 +355,12 @@ if (__VLS_ctx.result) {
         });
         /** @type {[typeof MindMapMermaid, ]} */ ;
         // @ts-ignore
-        const __VLS_8 = __VLS_asFunctionalComponent(MindMapMermaid, new MindMapMermaid({
+        const __VLS_12 = __VLS_asFunctionalComponent(MindMapMermaid, new MindMapMermaid({
             mindMapJson: (__VLS_ctx.result.mindMapJson),
         }));
-        const __VLS_9 = __VLS_8({
+        const __VLS_13 = __VLS_12({
             mindMapJson: (__VLS_ctx.result.mindMapJson),
-        }, ...__VLS_functionalComponentArgsRest(__VLS_8));
+        }, ...__VLS_functionalComponentArgsRest(__VLS_12));
     }
     if (__VLS_ctx.result.noteStyle) {
         __VLS_asFunctionalElement(__VLS_intrinsicElements.p, __VLS_intrinsicElements.p)({});
@@ -401,6 +438,14 @@ if (__VLS_ctx.result) {
     (__VLS_ctx.result.markdownPreview);
 }
 /** @type {__VLS_StyleScopedClasses['page-home']} */ ;
+/** @type {__VLS_StyleScopedClasses['cyber-card']} */ ;
+/** @type {__VLS_StyleScopedClasses['home-guidance-resume']} */ ;
+/** @type {__VLS_StyleScopedClasses['home-guidance-heading']} */ ;
+/** @type {__VLS_StyleScopedClasses['cyber-muted']} */ ;
+/** @type {__VLS_StyleScopedClasses['home-guidance-actions']} */ ;
+/** @type {__VLS_StyleScopedClasses['cyber-link']} */ ;
+/** @type {__VLS_StyleScopedClasses['cyber-muted']} */ ;
+/** @type {__VLS_StyleScopedClasses['home-guidance-finish']} */ ;
 /** @type {__VLS_StyleScopedClasses['cyber-display']} */ ;
 /** @type {__VLS_StyleScopedClasses['cyber-title-glitch']} */ ;
 /** @type {__VLS_StyleScopedClasses['cyber-muted']} */ ;
@@ -438,6 +483,8 @@ const __VLS_self = (await import('vue')).defineComponent({
             API_ORIGIN: API_ORIGIN,
             MindMapMermaid: MindMapMermaid,
             VideoLinkSection: VideoLinkSection,
+            RouterLink: RouterLink,
+            activeGuidance: activeGuidance,
             textContent: textContent,
             noteStyle: noteStyle,
             outputLanguage: outputLanguage,

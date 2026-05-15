@@ -2,10 +2,17 @@ package com.aizeronote.model.guidance;
 
 public final class GuidanceSessionStatus {
 
-    public static final String PROFILE_READY = "PROFILE_READY";
+    /** Questionnaire submitted (profile / 画像就绪). */
+    public static final String PROFILED = "PROFILED";
 
-    /** Questionnaire done and a study plan has been generated for this session. */
+    /** Study plan generated; learner has not started execution yet. */
     public static final String PLAN_READY = "PLAN_READY";
+
+    /** Learner is following the plan (in-session progress). */
+    public static final String IN_PROGRESS = "IN_PROGRESS";
+
+    /** Learner marked this guidance run complete. */
+    public static final String COMPLETED = "COMPLETED";
 
     private GuidanceSessionStatus() {
     }

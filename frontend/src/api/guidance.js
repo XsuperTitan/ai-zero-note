@@ -54,3 +54,27 @@ export async function getStudyPlanBySessionId(sessionId) {
     const response = await apiFetch(`${API_ORIGIN}/api/guidance/plan/session/${sessionId}`);
     return parseEnvelope(response);
 }
+export async function getActiveGuidanceProgress() {
+    const response = await apiFetch(`${API_ORIGIN}/api/guidance/progress/active`);
+    return parseEnvelope(response);
+}
+export async function enterGuidanceSessionInProgress(sessionId) {
+    const response = await apiFetch(`${API_ORIGIN}/api/guidance/session/${sessionId}/enter-in-progress`, {
+        method: "POST"
+    });
+    return parseEnvelope(response);
+}
+export async function updateGuidanceCurrentVideo(sessionId, currentVideoId) {
+    const response = await apiFetch(`${API_ORIGIN}/api/guidance/session/${sessionId}/current-video`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ currentVideoId })
+    });
+    return parseEnvelope(response);
+}
+export async function completeGuidanceSession(sessionId) {
+    const response = await apiFetch(`${API_ORIGIN}/api/guidance/session/${sessionId}/complete`, {
+        method: "POST"
+    });
+    return parseEnvelope(response);
+}

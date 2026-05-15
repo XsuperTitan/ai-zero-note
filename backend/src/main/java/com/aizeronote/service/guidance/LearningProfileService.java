@@ -37,7 +37,7 @@ public class LearningProfileService {
         GuidanceSession session = new GuidanceSession();
         session.setUserId(userId);
         session.setTutorPersona(request.getTutorPersona().name());
-        session.setStatus(GuidanceSessionStatus.PROFILE_READY);
+        session.setStatus(GuidanceSessionStatus.PROFILED);
         session.setQuestionnaireJson(questionnaireJson);
         session.setReportSummary(summary);
         session.setLlmPromptConstraints(constraints);

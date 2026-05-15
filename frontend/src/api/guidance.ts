@@ -101,6 +101,7 @@ export interface StudyPlanResponse {
   currentVideoId: string;
   createdAt: string;
   updatedAt: string;
+  sessionStatus: string;
 }
 
 export async function generateStudyPlan(
@@ -123,4 +124,42 @@ export async function getLatestStudyPlan(): Promise<StudyPlanResponse> {
 export async function getStudyPlanBySessionId(sessionId: number): Promise<StudyPlanResponse> {
   const response = await apiFetch(`${API_ORIGIN}/api/guidance/plan/session/${sessionId}`);
   return parseEnvelope<StudyPlanResponse>(response);
+}
+
+export interface GuidanceActiveProgressResponse {
+  sessionId: number;
+  status: string;
+  tutorPersona: string;
+  subjectOrTopic: string;
+  currentVideoId: string;
+  currentVideoTitle: string;
+  studyPlanPath: string;
+}
+
+export async function getActiveGuidanceProgress(): Promise<GuidanceActiveProgressResponse | null> {
+  const response = await apiFetch(`${API_ORIGIN}/api/guidance/progress/active`);
+  return parseEnvelope<GuidanceActiveProgressResponse | null>(response);
+}
+
+export async function enterGuidanceSessionInProgress(sessionId: number): Promise<boolean> {
+  const response = await apiFetch(`${API_ORIGIN}/api/guidance/session/${sessionId}/enter-in-progress`, {
+    method: "POST"
+  });
+  return parseEnvelope<boolean>(response);
+}
+
+export async function updateGuidanceCurrentVideo(sessionId: number, currentVideoId: string): Promise<boolean> {
+  const response = await apiFetch(`${API_ORIGIN}/api/guidance/session/${sessionId}/current-video`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ currentVideoId })
+  });
+  return parseEnvelope<boolean>(response);
+}
+
+export async function completeGuidanceSession(sessionId: number): Promise<boolean> {
+  const response = await apiFetch(`${API_ORIGIN}/api/guidance/session/${sessionId}/complete`, {
+    method: "POST"
+  });
+  return parseEnvelope<boolean>(response);
 }
